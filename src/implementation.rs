@@ -40,12 +40,18 @@ impl VssClient {
     /// # Returns
     /// VssItem with the stored data and assigned version
     pub async fn store(&self, key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
+        // First check if the key already exists to get the current version
+        let current_version = match self.get(key.clone()).await? {
+            Some(existing_item) => existing_item.version,
+            None => 0, // New items start at version 0
+        };
+        
         let request = PutObjectRequest {
             store_id: self.store_id.clone(),
             global_version: None,
             transaction_items: vec![ExternalKeyValue {
                 key: key.clone(),
-                version: 0, // New items start at version 0
+                version: current_version,
                 value: value.clone(),
             }],
             delete_items: vec![],
