@@ -27,11 +27,7 @@ macro_rules! execute_async {
         } else {
             // Normal case - use our runtime
             let rt = ensure_runtime();
-            rt.spawn($async_block).await.unwrap_or_else(|e| {
-                Err(VssError::ConnectionError {
-                    error_details: format!("Runtime error: {}", e),
-                })
-            })
+            rt.block_on($async_block)
         }
     }};
 }
