@@ -5,8 +5,9 @@ set -e  # Exit immediately if a command exits with a non-zero status.
 echo "Starting Android build process..."
 
 # Define output directories
-BASE_DIR="./bindings/android"
-JNILIBS_DIR="$BASE_DIR/jniLibs"
+ANDROID_LIB_DIR="./bindings/android"
+BASE_DIR="$ANDROID_LIB_DIR/src/main/kotlin/com/synonym/vssclient"
+JNILIBS_DIR="$ANDROID_LIB_DIR/src/main/jniLibs"
 
 # Create output directories
 mkdir -p "$BASE_DIR"
@@ -14,7 +15,8 @@ mkdir -p "$JNILIBS_DIR"
 
 # Remove previous build
 echo "Removing previous build..."
-rm -rf bindings/android/
+rm -rf "$BASE_DIR"/*
+rm -rf "$JNILIBS_DIR"/*
 
 # Cargo Build
 echo "Building Rust libraries..."
@@ -108,7 +110,7 @@ find "$TMP_DIR" -name "vss_rust_client_ffi.kt" -exec mv {} "$BASE_DIR/" \;
 # Clean up temp directory and any remaining uniffi directories
 echo "Cleaning up temporary files..."
 rm -rf "$TMP_DIR"
-rm -rf "$BASE_DIR/uniffi"
+rm -rf "$ANDROID_LIB_DIR/uniffi"
 
 # Verify the file was moved correctly
 if [ ! -f "$BASE_DIR/vss_rust_client_ffi.kt" ]; then
@@ -117,5 +119,15 @@ if [ ! -f "$BASE_DIR/vss_rust_client_ffi.kt" ]; then
     ls -la "$BASE_DIR"
     exit 1
 fi
+
+# Sync version
+echo "Syncing version from Cargo.toml..."
+CARGO_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/' | head -1)
+sed -i.bak "s/^version=.*/version=$CARGO_VERSION/" "$ANDROID_LIB_DIR/gradle.properties"
+rm -f "$ANDROID_LIB_DIR/gradle.properties.bak"
+
+# Verify android library publish
+echo "Testing android library publish to Maven Local..."
+"$ANDROID_LIB_DIR"/gradlew --project-dir "$ANDROID_LIB_DIR" clean publishToMavenLocal
 
 echo "Android build process completed successfully!"
