@@ -1,0 +1,54 @@
+# This workflow will build a package using Gradle and then publish it to GitHub packages when a release is created
+# For more info see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#Publishing-using-gradle
+
+name: Gradle Publish
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. v0.1.0)'
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        working-directory: bindings/android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          server-id: github
+          settings-path: ${{ github.workspace }}
+  
+      - name: Extract version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [[ -z "$VERSION" ]]; then
+            VERSION="$GITHUB_REF_NAME"
+          fi
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+    
+      - name: Build
+        run: ./gradlew assembleRelease -Pversion=${{ steps.version.outputs.version }}
+
+      - name: Publish
+        run: ./gradlew publish -Pversion=${{ steps.version.outputs.version }}
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.ORG_PACKAGES_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
