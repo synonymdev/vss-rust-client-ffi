@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package uniffi.vss_rust_client_ffi;
+package com.synonym.vssclient
 
 // Common helper code.
 //
@@ -1363,4 +1363,6 @@ suspend fun `vssStore`(`key`: String, `value`: ByteArray) : VssItem {
         VssException.ErrorHandler,
     )
 }
+
+
 
