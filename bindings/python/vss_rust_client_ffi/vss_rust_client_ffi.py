@@ -515,6 +515,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 949:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth() != 20239:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix() != 15750:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client() != 27474:
@@ -547,6 +549,14 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_new_client.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_new_client.restype = ctypes.c_void_p
+_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth.argtypes = (
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+)
+_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth.restype = ctypes.c_void_p
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix.argtypes = (
     _UniffiRustBuffer,
 )
@@ -834,6 +844,9 @@ _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys.restype = ctyp
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client.restype = ctypes.c_uint16
+_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth.argtypes = (
+)
+_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix.restype = ctypes.c_uint16
@@ -1488,6 +1501,24 @@ def vss_new_client(base_url: "str",store_id: "str"):
         _UniffiConverterTypeVssError,
     )
 
+def vss_new_client_with_lnurl_auth(base_url: "str",store_id: "str",mnemonic: "str",passphrase: "typing.Optional[str]",lnurl_auth_server_url: "str"):
+    return _uniffi_rust_call_async(
+        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth(
+        _UniffiConverterString.lower(base_url),
+        _UniffiConverterString.lower(store_id),
+        _UniffiConverterString.lower(mnemonic),
+        _UniffiConverterOptionalString.lower(passphrase),
+        _UniffiConverterString.lower(lnurl_auth_server_url)),
+        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_void,
+        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_void,
+        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_void,
+        # lift function
+        lambda val: None,
+        
+        # Error FFI converter
+        _UniffiConverterTypeVssError,
+    )
+
 def vss_put_with_key_prefix(items: "typing.List[KeyValue]"):
     return _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(
@@ -1532,6 +1563,7 @@ __all__ = [
     "vss_list",
     "vss_list_keys",
     "vss_new_client",
+    "vss_new_client_with_lnurl_auth",
     "vss_put_with_key_prefix",
     "vss_shutdown_client",
     "vss_store",
