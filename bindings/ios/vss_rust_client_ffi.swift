@@ -6,10 +6,10 @@ import Foundation
 // might be in a separate module, or it might be compiled inline into
 // this module. This is a bit of light hackery to work with both.
 #if canImport(vss_rust_client_ffiFFI)
-import vss_rust_client_ffiFFI
+    import vss_rust_client_ffiFFI
 #endif
 
-fileprivate extension RustBuffer {
+private extension RustBuffer {
     // Allocate a new buffer, copying the contents of a `UInt8` array.
     init(bytes: [UInt8]) {
         let rbuf = bytes.withUnsafeBufferPointer { ptr in
@@ -29,7 +29,7 @@ fileprivate extension RustBuffer {
     }
 }
 
-fileprivate extension ForeignBytes {
+private extension ForeignBytes {
     init(bufferPointer: UnsafeBufferPointer<UInt8>) {
         self.init(len: Int32(bufferPointer.count), data: bufferPointer.baseAddress)
     }
@@ -42,7 +42,7 @@ fileprivate extension ForeignBytes {
 // Helper classes/extensions that don't change.
 // Someday, this will be in a library of its own.
 
-fileprivate extension Data {
+private extension Data {
     init(rustBuffer: RustBuffer) {
         // TODO: This copies the buffer. Can we read directly from a
         // Rust buffer?
@@ -64,15 +64,15 @@ fileprivate extension Data {
 //
 // Instead, the read() method and these helper functions input a tuple of data
 
-fileprivate func createReader(data: Data) -> (data: Data, offset: Data.Index) {
+private func createReader(data: Data) -> (data: Data, offset: Data.Index) {
     (data: data, offset: 0)
 }
 
 // Reads an integer at the current offset, in big-endian order, and advances
 // the offset on success. Throws if reading the integer would move the
 // offset past the end of the buffer.
-fileprivate func readInt<T: FixedWidthInteger>(_ reader: inout (data: Data, offset: Data.Index)) throws -> T {
-    let range = reader.offset..<reader.offset + MemoryLayout<T>.size
+private func readInt<T: FixedWidthInteger>(_ reader: inout (data: Data, offset: Data.Index)) throws -> T {
+    let range = reader.offset ..< reader.offset + MemoryLayout<T>.size
     guard reader.data.count >= range.upperBound else {
         throw UniffiInternalError.bufferOverflow
     }
@@ -82,38 +82,38 @@ fileprivate func readInt<T: FixedWidthInteger>(_ reader: inout (data: Data, offs
         return value as! T
     }
     var value: T = 0
-    let _ = withUnsafeMutableBytes(of: &value, { reader.data.copyBytes(to: $0, from: range)})
+    let _ = withUnsafeMutableBytes(of: &value) { reader.data.copyBytes(to: $0, from: range) }
     reader.offset = range.upperBound
     return value.bigEndian
 }
 
 // Reads an arbitrary number of bytes, to be used to read
 // raw bytes, this is useful when lifting strings
-fileprivate func readBytes(_ reader: inout (data: Data, offset: Data.Index), count: Int) throws -> Array<UInt8> {
-    let range = reader.offset..<(reader.offset+count)
+private func readBytes(_ reader: inout (data: Data, offset: Data.Index), count: Int) throws -> [UInt8] {
+    let range = reader.offset ..< (reader.offset + count)
     guard reader.data.count >= range.upperBound else {
         throw UniffiInternalError.bufferOverflow
     }
     var value = [UInt8](repeating: 0, count: count)
-    value.withUnsafeMutableBufferPointer({ buffer in
+    value.withUnsafeMutableBufferPointer { buffer in
         reader.data.copyBytes(to: buffer, from: range)
-    })
+    }
     reader.offset = range.upperBound
     return value
 }
 
 // Reads a float at the current offset.
-fileprivate func readFloat(_ reader: inout (data: Data, offset: Data.Index)) throws -> Float {
-    return Float(bitPattern: try readInt(&reader))
+private func readFloat(_ reader: inout (data: Data, offset: Data.Index)) throws -> Float {
+    return try Float(bitPattern: readInt(&reader))
 }
 
 // Reads a float at the current offset.
-fileprivate func readDouble(_ reader: inout (data: Data, offset: Data.Index)) throws -> Double {
-    return Double(bitPattern: try readInt(&reader))
+private func readDouble(_ reader: inout (data: Data, offset: Data.Index)) throws -> Double {
+    return try Double(bitPattern: readInt(&reader))
 }
 
 // Indicates if the offset has reached the end of the buffer.
-fileprivate func hasRemaining(_ reader: (data: Data, offset: Data.Index)) -> Bool {
+private func hasRemaining(_ reader: (data: Data, offset: Data.Index)) -> Bool {
     return reader.offset < reader.data.count
 }
 
@@ -121,11 +121,11 @@ fileprivate func hasRemaining(_ reader: (data: Data, offset: Data.Index)) -> Boo
 // struct, but we use standalone functions instead in order to make external
 // types work.  See the above discussion on Readers for details.
 
-fileprivate func createWriter() -> [UInt8] {
+private func createWriter() -> [UInt8] {
     return []
 }
 
-fileprivate func writeBytes<S>(_ writer: inout [UInt8], _ byteArr: S) where S: Sequence, S.Element == UInt8 {
+private func writeBytes<S>(_ writer: inout [UInt8], _ byteArr: S) where S: Sequence, S.Element == UInt8 {
     writer.append(contentsOf: byteArr)
 }
 
@@ -133,22 +133,22 @@ fileprivate func writeBytes<S>(_ writer: inout [UInt8], _ byteArr: S) where S: S
 //
 // Warning: make sure what you are trying to write
 // is in the correct type!
-fileprivate func writeInt<T: FixedWidthInteger>(_ writer: inout [UInt8], _ value: T) {
+private func writeInt<T: FixedWidthInteger>(_ writer: inout [UInt8], _ value: T) {
     var value = value.bigEndian
     withUnsafeBytes(of: &value) { writer.append(contentsOf: $0) }
 }
 
-fileprivate func writeFloat(_ writer: inout [UInt8], _ value: Float) {
+private func writeFloat(_ writer: inout [UInt8], _ value: Float) {
     writeInt(&writer, value.bitPattern)
 }
 
-fileprivate func writeDouble(_ writer: inout [UInt8], _ value: Double) {
+private func writeDouble(_ writer: inout [UInt8], _ value: Double) {
     writeInt(&writer, value.bitPattern)
 }
 
 // Protocol for types that transfer other types across the FFI. This is
 // analogous go the Rust trait of the same name.
-fileprivate protocol FfiConverter {
+private protocol FfiConverter {
     associatedtype FfiType
     associatedtype SwiftType
 
@@ -159,7 +159,7 @@ fileprivate protocol FfiConverter {
 }
 
 // Types conforming to `Primitive` pass themselves directly over the FFI.
-fileprivate protocol FfiConverterPrimitive: FfiConverter where FfiType == SwiftType { }
+private protocol FfiConverterPrimitive: FfiConverter where FfiType == SwiftType {}
 
 extension FfiConverterPrimitive {
     public static func lift(_ value: FfiType) throws -> SwiftType {
@@ -173,7 +173,7 @@ extension FfiConverterPrimitive {
 
 // Types conforming to `FfiConverterRustBuffer` lift and lower into a `RustBuffer`.
 // Used for complex types where it's hard to write a custom lift/lower.
-fileprivate protocol FfiConverterRustBuffer: FfiConverter where FfiType == RustBuffer {}
+private protocol FfiConverterRustBuffer: FfiConverter where FfiType == RustBuffer {}
 
 extension FfiConverterRustBuffer {
     public static func lift(_ buf: RustBuffer) throws -> SwiftType {
@@ -187,14 +187,15 @@ extension FfiConverterRustBuffer {
     }
 
     public static func lower(_ value: SwiftType) -> RustBuffer {
-          var writer = createWriter()
-          write(value, into: &writer)
-          return RustBuffer(bytes: writer)
+        var writer = createWriter()
+        write(value, into: &writer)
+        return RustBuffer(bytes: writer)
     }
 }
+
 // An error type for FFI errors. These errors occur at the UniFFI level, not
 // the library level.
-fileprivate enum UniffiInternalError: LocalizedError {
+private enum UniffiInternalError: LocalizedError {
     case bufferOverflow
     case incompleteData
     case unexpectedOptionalTag
@@ -220,16 +221,16 @@ fileprivate enum UniffiInternalError: LocalizedError {
     }
 }
 
-fileprivate let CALL_SUCCESS: Int8 = 0
-fileprivate let CALL_ERROR: Int8 = 1
-fileprivate let CALL_PANIC: Int8 = 2
-fileprivate let CALL_CANCELLED: Int8 = 3
+private let CALL_SUCCESS: Int8 = 0
+private let CALL_ERROR: Int8 = 1
+private let CALL_PANIC: Int8 = 2
+private let CALL_CANCELLED: Int8 = 3
 
-fileprivate extension RustCallStatus {
+private extension RustCallStatus {
     init() {
         self.init(
             code: CALL_SUCCESS,
-            errorBuf: RustBuffer.init(
+            errorBuf: RustBuffer(
                 capacity: 0,
                 len: 0,
                 data: nil
@@ -244,7 +245,8 @@ private func rustCall<T>(_ callback: (UnsafeMutablePointer<RustCallStatus>) -> T
 
 private func rustCallWithError<T>(
     _ errorHandler: @escaping (RustBuffer) throws -> Error,
-    _ callback: (UnsafeMutablePointer<RustCallStatus>) -> T) throws -> T {
+    _ callback: (UnsafeMutablePointer<RustCallStatus>) -> T
+) throws -> T {
     try makeRustCall(callback, errorHandler: errorHandler)
 }
 
@@ -253,7 +255,7 @@ private func makeRustCall<T>(
     errorHandler: ((RustBuffer) throws -> Error)?
 ) throws -> T {
     uniffiEnsureInitialized()
-    var callStatus = RustCallStatus.init()
+    var callStatus = RustCallStatus()
     let returnedVal = callback(&callStatus)
     try uniffiCheckCallStatus(callStatus: callStatus, errorHandler: errorHandler)
     return returnedVal
@@ -264,40 +266,39 @@ private func uniffiCheckCallStatus(
     errorHandler: ((RustBuffer) throws -> Error)?
 ) throws {
     switch callStatus.code {
-        case CALL_SUCCESS:
-            return
+    case CALL_SUCCESS:
+        return
 
-        case CALL_ERROR:
-            if let errorHandler = errorHandler {
-                throw try errorHandler(callStatus.errorBuf)
-            } else {
-                callStatus.errorBuf.deallocate()
-                throw UniffiInternalError.unexpectedRustCallError
-            }
+    case CALL_ERROR:
+        if let errorHandler = errorHandler {
+            throw try errorHandler(callStatus.errorBuf)
+        } else {
+            callStatus.errorBuf.deallocate()
+            throw UniffiInternalError.unexpectedRustCallError
+        }
 
-        case CALL_PANIC:
-            // When the rust code sees a panic, it tries to construct a RustBuffer
-            // with the message.  But if that code panics, then it just sends back
-            // an empty buffer.
-            if callStatus.errorBuf.len > 0 {
-                throw UniffiInternalError.rustPanic(try FfiConverterString.lift(callStatus.errorBuf))
-            } else {
-                callStatus.errorBuf.deallocate()
-                throw UniffiInternalError.rustPanic("Rust panic")
-            }
+    case CALL_PANIC:
+        // When the rust code sees a panic, it tries to construct a RustBuffer
+        // with the message.  But if that code panics, then it just sends back
+        // an empty buffer.
+        if callStatus.errorBuf.len > 0 {
+            throw try UniffiInternalError.rustPanic(FfiConverterString.lift(callStatus.errorBuf))
+        } else {
+            callStatus.errorBuf.deallocate()
+            throw UniffiInternalError.rustPanic("Rust panic")
+        }
 
-        case CALL_CANCELLED:
-                throw CancellationError()
+    case CALL_CANCELLED:
+        throw CancellationError()
 
-        default:
-            throw UniffiInternalError.unexpectedRustCallStatusCode
+    default:
+        throw UniffiInternalError.unexpectedRustCallStatusCode
     }
 }
 
 // Public interface members begin here.
 
-
-fileprivate struct FfiConverterInt64: FfiConverterPrimitive {
+private struct FfiConverterInt64: FfiConverterPrimitive {
     typealias FfiType = Int64
     typealias SwiftType = Int64
 
@@ -310,7 +311,7 @@ fileprivate struct FfiConverterInt64: FfiConverterPrimitive {
     }
 }
 
-fileprivate struct FfiConverterBool : FfiConverter {
+private struct FfiConverterBool: FfiConverter {
     typealias FfiType = Int8
     typealias SwiftType = Bool
 
@@ -331,7 +332,7 @@ fileprivate struct FfiConverterBool : FfiConverter {
     }
 }
 
-fileprivate struct FfiConverterString: FfiConverter {
+private struct FfiConverterString: FfiConverter {
     typealias SwiftType = String
     typealias FfiType = RustBuffer
 
@@ -359,7 +360,7 @@ fileprivate struct FfiConverterString: FfiConverter {
 
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> String {
         let len: Int32 = try readInt(&buf)
-        return String(bytes: try readBytes(&buf, count: Int(len)), encoding: String.Encoding.utf8)!
+        return try String(bytes: readBytes(&buf, count: Int(len)), encoding: String.Encoding.utf8)!
     }
 
     public static func write(_ value: String, into buf: inout [UInt8]) {
@@ -369,12 +370,12 @@ fileprivate struct FfiConverterString: FfiConverter {
     }
 }
 
-fileprivate struct FfiConverterData: FfiConverterRustBuffer {
+private struct FfiConverterData: FfiConverterRustBuffer {
     typealias SwiftType = Data
 
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Data {
         let len: Int32 = try readInt(&buf)
-        return Data(try readBytes(&buf, count: Int(len)))
+        return try Data(readBytes(&buf, count: Int(len)))
     }
 
     public static func write(_ value: Data, into buf: inout [UInt8]) {
@@ -383,7 +384,6 @@ fileprivate struct FfiConverterData: FfiConverterRustBuffer {
         writeBytes(&buf, value)
     }
 }
-
 
 public struct KeyValue {
     public var key: String
@@ -397,9 +397,8 @@ public struct KeyValue {
     }
 }
 
-
 extension KeyValue: Equatable, Hashable {
-    public static func ==(lhs: KeyValue, rhs: KeyValue) -> Bool {
+    public static func == (lhs: KeyValue, rhs: KeyValue) -> Bool {
         if lhs.key != rhs.key {
             return false
         }
@@ -415,11 +414,10 @@ extension KeyValue: Equatable, Hashable {
     }
 }
 
-
 public struct FfiConverterTypeKeyValue: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> KeyValue {
         return try KeyValue(
-            key: FfiConverterString.read(from: &buf), 
+            key: FfiConverterString.read(from: &buf),
             value: FfiConverterData.read(from: &buf)
         )
     }
@@ -430,7 +428,6 @@ public struct FfiConverterTypeKeyValue: FfiConverterRustBuffer {
     }
 }
 
-
 public func FfiConverterTypeKeyValue_lift(_ buf: RustBuffer) throws -> KeyValue {
     return try FfiConverterTypeKeyValue.lift(buf)
 }
@@ -438,7 +435,6 @@ public func FfiConverterTypeKeyValue_lift(_ buf: RustBuffer) throws -> KeyValue 
 public func FfiConverterTypeKeyValue_lower(_ value: KeyValue) -> RustBuffer {
     return FfiConverterTypeKeyValue.lower(value)
 }
-
 
 public struct KeyVersion {
     public var key: String
@@ -452,9 +448,8 @@ public struct KeyVersion {
     }
 }
 
-
 extension KeyVersion: Equatable, Hashable {
-    public static func ==(lhs: KeyVersion, rhs: KeyVersion) -> Bool {
+    public static func == (lhs: KeyVersion, rhs: KeyVersion) -> Bool {
         if lhs.key != rhs.key {
             return false
         }
@@ -470,11 +465,10 @@ extension KeyVersion: Equatable, Hashable {
     }
 }
 
-
 public struct FfiConverterTypeKeyVersion: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> KeyVersion {
         return try KeyVersion(
-            key: FfiConverterString.read(from: &buf), 
+            key: FfiConverterString.read(from: &buf),
             version: FfiConverterInt64.read(from: &buf)
         )
     }
@@ -485,7 +479,6 @@ public struct FfiConverterTypeKeyVersion: FfiConverterRustBuffer {
     }
 }
 
-
 public func FfiConverterTypeKeyVersion_lift(_ buf: RustBuffer) throws -> KeyVersion {
     return try FfiConverterTypeKeyVersion.lift(buf)
 }
@@ -493,7 +486,6 @@ public func FfiConverterTypeKeyVersion_lift(_ buf: RustBuffer) throws -> KeyVers
 public func FfiConverterTypeKeyVersion_lower(_ value: KeyVersion) -> RustBuffer {
     return FfiConverterTypeKeyVersion.lower(value)
 }
-
 
 public struct ListKeyVersionsResponse {
     public var keyVersions: [KeyVersion]
@@ -505,9 +497,8 @@ public struct ListKeyVersionsResponse {
     }
 }
 
-
 extension ListKeyVersionsResponse: Equatable, Hashable {
-    public static func ==(lhs: ListKeyVersionsResponse, rhs: ListKeyVersionsResponse) -> Bool {
+    public static func == (lhs: ListKeyVersionsResponse, rhs: ListKeyVersionsResponse) -> Bool {
         if lhs.keyVersions != rhs.keyVersions {
             return false
         }
@@ -518,7 +509,6 @@ extension ListKeyVersionsResponse: Equatable, Hashable {
         hasher.combine(keyVersions)
     }
 }
-
 
 public struct FfiConverterTypeListKeyVersionsResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ListKeyVersionsResponse {
@@ -532,7 +522,6 @@ public struct FfiConverterTypeListKeyVersionsResponse: FfiConverterRustBuffer {
     }
 }
 
-
 public func FfiConverterTypeListKeyVersionsResponse_lift(_ buf: RustBuffer) throws -> ListKeyVersionsResponse {
     return try FfiConverterTypeListKeyVersionsResponse.lift(buf)
 }
@@ -540,7 +529,6 @@ public func FfiConverterTypeListKeyVersionsResponse_lift(_ buf: RustBuffer) thro
 public func FfiConverterTypeListKeyVersionsResponse_lower(_ value: ListKeyVersionsResponse) -> RustBuffer {
     return FfiConverterTypeListKeyVersionsResponse.lower(value)
 }
-
 
 public struct VssItem {
     public var key: String
@@ -556,9 +544,8 @@ public struct VssItem {
     }
 }
 
-
 extension VssItem: Equatable, Hashable {
-    public static func ==(lhs: VssItem, rhs: VssItem) -> Bool {
+    public static func == (lhs: VssItem, rhs: VssItem) -> Bool {
         if lhs.key != rhs.key {
             return false
         }
@@ -578,12 +565,11 @@ extension VssItem: Equatable, Hashable {
     }
 }
 
-
 public struct FfiConverterTypeVssItem: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> VssItem {
         return try VssItem(
-            key: FfiConverterString.read(from: &buf), 
-            value: FfiConverterData.read(from: &buf), 
+            key: FfiConverterString.read(from: &buf),
+            value: FfiConverterData.read(from: &buf),
             version: FfiConverterInt64.read(from: &buf)
         )
     }
@@ -595,7 +581,6 @@ public struct FfiConverterTypeVssItem: FfiConverterRustBuffer {
     }
 }
 
-
 public func FfiConverterTypeVssItem_lift(_ buf: RustBuffer) throws -> VssItem {
     return try FfiConverterTypeVssItem.lift(buf)
 }
@@ -605,9 +590,6 @@ public func FfiConverterTypeVssItem_lower(_ value: VssItem) -> RustBuffer {
 }
 
 public enum VssError {
-
-    
-    
     case ConnectionError(errorDetails: String)
     case AuthError(errorDetails: String)
     case StoreError(errorDetails: String)
@@ -624,121 +606,98 @@ public enum VssError {
     }
 }
 
-
 public struct FfiConverterTypeVssError: FfiConverterRustBuffer {
     typealias SwiftType = VssError
 
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> VssError {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-
-        
-
-        
-        case 1: return .ConnectionError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 1: return try .ConnectionError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 2: return .AuthError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 2: return try .AuthError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 3: return .StoreError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 3: return try .StoreError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 4: return .GetError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 4: return try .GetError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 5: return .ListError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 5: return try .ListError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 6: return .PutError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 6: return try .PutError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 7: return .DeleteError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 7: return try .DeleteError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 8: return .InvalidData(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 8: return try .InvalidData(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 9: return .NetworkError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 9: return try .NetworkError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-        case 10: return .UnknownError(
-            errorDetails: try FfiConverterString.read(from: &buf)
+        case 10: return try .UnknownError(
+                errorDetails: FfiConverterString.read(from: &buf)
             )
-
-         default: throw UniffiInternalError.unexpectedEnumCase
+        default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: VssError, into buf: inout [UInt8]) {
         switch value {
-
-        
-
-        
-        
         case let .ConnectionError(errorDetails):
             writeInt(&buf, Int32(1))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .AuthError(errorDetails):
             writeInt(&buf, Int32(2))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .StoreError(errorDetails):
             writeInt(&buf, Int32(3))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .GetError(errorDetails):
             writeInt(&buf, Int32(4))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .ListError(errorDetails):
             writeInt(&buf, Int32(5))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .PutError(errorDetails):
             writeInt(&buf, Int32(6))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .DeleteError(errorDetails):
             writeInt(&buf, Int32(7))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .InvalidData(errorDetails):
             writeInt(&buf, Int32(8))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .NetworkError(errorDetails):
             writeInt(&buf, Int32(9))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
         case let .UnknownError(errorDetails):
             writeInt(&buf, Int32(10))
             FfiConverterString.write(errorDetails, into: &buf)
-            
         }
     }
 }
 
-
 extension VssError: Equatable, Hashable {}
 
-extension VssError: Error { }
+extension VssError: Error {}
 
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum VssFilterType {
-    
     case prefix
     case exact
 }
@@ -749,30 +708,24 @@ public struct FfiConverterTypeVssFilterType: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> VssFilterType {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
         case 1: return .prefix
-        
+
         case 2: return .exact
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: VssFilterType, into buf: inout [UInt8]) {
         switch value {
-        
-        
         case .prefix:
             writeInt(&buf, Int32(1))
-        
-        
+
         case .exact:
             writeInt(&buf, Int32(2))
-        
         }
     }
 }
-
 
 public func FfiConverterTypeVssFilterType_lift(_ buf: RustBuffer) throws -> VssFilterType {
     return try FfiConverterTypeVssFilterType.lift(buf)
@@ -782,12 +735,9 @@ public func FfiConverterTypeVssFilterType_lower(_ value: VssFilterType) -> RustB
     return FfiConverterTypeVssFilterType.lower(value)
 }
 
-
 extension VssFilterType: Equatable, Hashable {}
 
-
-
-fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
+private struct FfiConverterOptionString: FfiConverterRustBuffer {
     typealias SwiftType = String?
 
     public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
@@ -808,7 +758,7 @@ fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
     }
 }
 
-fileprivate struct FfiConverterOptionTypeVssItem: FfiConverterRustBuffer {
+private struct FfiConverterOptionTypeVssItem: FfiConverterRustBuffer {
     typealias SwiftType = VssItem?
 
     public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
@@ -829,7 +779,7 @@ fileprivate struct FfiConverterOptionTypeVssItem: FfiConverterRustBuffer {
     }
 }
 
-fileprivate struct FfiConverterSequenceTypeKeyValue: FfiConverterRustBuffer {
+private struct FfiConverterSequenceTypeKeyValue: FfiConverterRustBuffer {
     typealias SwiftType = [KeyValue]
 
     public static func write(_ value: [KeyValue], into buf: inout [UInt8]) {
@@ -845,13 +795,13 @@ fileprivate struct FfiConverterSequenceTypeKeyValue: FfiConverterRustBuffer {
         var seq = [KeyValue]()
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
-            seq.append(try FfiConverterTypeKeyValue.read(from: &buf))
+            try seq.append(FfiConverterTypeKeyValue.read(from: &buf))
         }
         return seq
     }
 }
 
-fileprivate struct FfiConverterSequenceTypeKeyVersion: FfiConverterRustBuffer {
+private struct FfiConverterSequenceTypeKeyVersion: FfiConverterRustBuffer {
     typealias SwiftType = [KeyVersion]
 
     public static func write(_ value: [KeyVersion], into buf: inout [UInt8]) {
@@ -867,13 +817,13 @@ fileprivate struct FfiConverterSequenceTypeKeyVersion: FfiConverterRustBuffer {
         var seq = [KeyVersion]()
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
-            seq.append(try FfiConverterTypeKeyVersion.read(from: &buf))
+            try seq.append(FfiConverterTypeKeyVersion.read(from: &buf))
         }
         return seq
     }
 }
 
-fileprivate struct FfiConverterSequenceTypeVssItem: FfiConverterRustBuffer {
+private struct FfiConverterSequenceTypeVssItem: FfiConverterRustBuffer {
     typealias SwiftType = [VssItem]
 
     public static func write(_ value: [VssItem], into buf: inout [UInt8]) {
@@ -889,19 +839,20 @@ fileprivate struct FfiConverterSequenceTypeVssItem: FfiConverterRustBuffer {
         var seq = [VssItem]()
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
-            seq.append(try FfiConverterTypeVssItem.read(from: &buf))
+            try seq.append(FfiConverterTypeVssItem.read(from: &buf))
         }
         return seq
     }
 }
+
 private let UNIFFI_RUST_FUTURE_POLL_READY: Int8 = 0
 private let UNIFFI_RUST_FUTURE_POLL_MAYBE_READY: Int8 = 1
 
-fileprivate func uniffiRustCallAsync<F, T>(
+private func uniffiRustCallAsync<F, T>(
     rustFutureFunc: () -> UnsafeMutableRawPointer,
-    pollFunc: (UnsafeMutableRawPointer, UnsafeMutableRawPointer) -> (),
+    pollFunc: (UnsafeMutableRawPointer, UnsafeMutableRawPointer) -> Void,
     completeFunc: (UnsafeMutableRawPointer, UnsafeMutablePointer<RustCallStatus>) -> F,
-    freeFunc: (UnsafeMutableRawPointer) -> (),
+    freeFunc: (UnsafeMutableRawPointer) -> Void,
     liftFunc: (F) throws -> T,
     errorHandler: ((RustBuffer) throws -> Error)?
 ) async throws -> T {
@@ -912,7 +863,7 @@ fileprivate func uniffiRustCallAsync<F, T>(
     defer {
         freeFunc(rustFuture)
     }
-    var pollResult: Int8;
+    var pollResult: Int8
     repeat {
         pollResult = await withUnsafeContinuation {
             pollFunc(rustFuture, ContinuationHolder($0).toOpaque())
@@ -927,13 +878,13 @@ fileprivate func uniffiRustCallAsync<F, T>(
 
 // Callback handlers for an async calls.  These are invoked by Rust when the future is ready.  They
 // lift the return value or error and resume the suspended function.
-fileprivate func uniffiFutureContinuationCallback(ptr: UnsafeMutableRawPointer, pollResult: Int8) {
+private func uniffiFutureContinuationCallback(ptr: UnsafeMutableRawPointer, pollResult: Int8) {
     ContinuationHolder.fromOpaque(ptr).resume(pollResult)
 }
 
 // Wraps UnsafeContinuation in a class so that we can use reference counting when passing it across
 // the FFI
-fileprivate class ContinuationHolder {
+private class ContinuationHolder {
     let continuation: UnsafeContinuation<Int8, Never>
 
     init(_ continuation: UnsafeContinuation<Int8, Never>) {
@@ -941,7 +892,7 @@ fileprivate class ContinuationHolder {
     }
 
     func resume(_ pollResult: Int8) {
-        self.continuation.resume(returning: pollResult)
+        continuation.resume(returning: pollResult)
     }
 
     func toOpaque() -> UnsafeMutableRawPointer {
@@ -953,12 +904,12 @@ fileprivate class ContinuationHolder {
     }
 }
 
-fileprivate func uniffiInitContinuationCallback() {
+private func uniffiInitContinuationCallback() {
     ffi_vss_rust_client_ffi_rust_future_continuation_callback_set(uniffiFutureContinuationCallback)
 }
 
 public func vssDelete(key: String) async throws -> Bool {
-    return try  await uniffiRustCallAsync(
+    return try await uniffiRustCallAsync(
         rustFutureFunc: {
             uniffi_vss_rust_client_ffi_fn_func_vss_delete(
                 FfiConverterString.lower(key)
@@ -972,10 +923,8 @@ public func vssDelete(key: String) async throws -> Bool {
     )
 }
 
-
-
 public func vssGet(key: String) async throws -> VssItem? {
-    return try  await uniffiRustCallAsync(
+    return try await uniffiRustCallAsync(
         rustFutureFunc: {
             uniffi_vss_rust_client_ffi_fn_func_vss_get(
                 FfiConverterString.lower(key)
@@ -989,10 +938,8 @@ public func vssGet(key: String) async throws -> VssItem? {
     )
 }
 
-
-
 public func vssList(prefix: String?) async throws -> [VssItem] {
-    return try  await uniffiRustCallAsync(
+    return try await uniffiRustCallAsync(
         rustFutureFunc: {
             uniffi_vss_rust_client_ffi_fn_func_vss_list(
                 FfiConverterOptionString.lower(prefix)
@@ -1006,10 +953,8 @@ public func vssList(prefix: String?) async throws -> [VssItem] {
     )
 }
 
-
-
 public func vssListKeys(prefix: String?) async throws -> [KeyVersion] {
-    return try  await uniffiRustCallAsync(
+    return try await uniffiRustCallAsync(
         rustFutureFunc: {
             uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(
                 FfiConverterOptionString.lower(prefix)
@@ -1023,10 +968,8 @@ public func vssListKeys(prefix: String?) async throws -> [KeyVersion] {
     )
 }
 
-
-
 public func vssNewClient(baseUrl: String, storeId: String) async throws {
-    return try  await uniffiRustCallAsync(
+    return try await uniffiRustCallAsync(
         rustFutureFunc: {
             uniffi_vss_rust_client_ffi_fn_func_vss_new_client(
                 FfiConverterString.lower(baseUrl),
@@ -1041,10 +984,27 @@ public func vssNewClient(baseUrl: String, storeId: String) async throws {
     )
 }
 
-
+public func vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String) async throws {
+    return try await uniffiRustCallAsync(
+        rustFutureFunc: {
+            uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth(
+                FfiConverterString.lower(baseUrl),
+                FfiConverterString.lower(storeId),
+                FfiConverterString.lower(mnemonic),
+                FfiConverterOptionString.lower(passphrase),
+                FfiConverterString.lower(lnurlAuthServerUrl)
+            )
+        },
+        pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_void,
+        completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_void,
+        freeFunc: ffi_vss_rust_client_ffi_rust_future_free_void,
+        liftFunc: { $0 },
+        errorHandler: FfiConverterTypeVssError.lift
+    )
+}
 
 public func vssPutWithKeyPrefix(items: [KeyValue]) async throws -> [VssItem] {
-    return try  await uniffiRustCallAsync(
+    return try await uniffiRustCallAsync(
         rustFutureFunc: {
             uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(
                 FfiConverterSequenceTypeKeyValue.lower(items)
@@ -1058,18 +1018,14 @@ public func vssPutWithKeyPrefix(items: [KeyValue]) async throws -> [VssItem] {
     )
 }
 
-
-
-public func vssShutdownClient()  {
-    try! rustCall() {
-    uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client($0)
+public func vssShutdownClient() {
+    try! rustCall {
+        uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client($0)
+    }
 }
-}
-
-
 
 public func vssStore(key: String, value: Data) async throws -> VssItem {
-    return try  await uniffiRustCallAsync(
+    return try await uniffiRustCallAsync(
         rustFutureFunc: {
             uniffi_vss_rust_client_ffi_fn_func_vss_store(
                 FfiConverterString.lower(key),
@@ -1084,13 +1040,12 @@ public func vssStore(key: String, value: Data) async throws -> VssItem {
     )
 }
 
-
-
 private enum InitializationResult {
     case ok
     case contractVersionMismatch
     case apiChecksumMismatch
 }
+
 // Use a global variables to perform the versioning checks. Swift ensures that
 // the code inside is only computed once.
 private var initializationResult: InitializationResult {
@@ -1101,28 +1056,31 @@ private var initializationResult: InitializationResult {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 46571) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 46571 {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 59657) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 59657 {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 16435) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 16435 {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 31884) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 31884 {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 949) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 949 {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix() != 15750) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth() != 20239 {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client() != 27474) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix() != 15750 {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42761) {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client() != 27474 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42761 {
         return InitializationResult.apiChecksumMismatch
     }
 
