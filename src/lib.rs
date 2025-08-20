@@ -1,9 +1,9 @@
 mod errors;
+#[cfg(test)]
+mod ffi_tests;
 mod implementation;
 mod tests;
 mod types;
-#[cfg(test)]
-mod ffi_tests;
 
 pub use errors::*;
 pub use implementation::VssClient;
@@ -11,9 +11,11 @@ pub use types::*;
 
 uniffi::setup_scaffolding!();
 
+use bip39::Mnemonic;
+use once_cell::sync::OnceCell;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
-use once_cell::sync::OnceCell;
 
 static RUNTIME: OnceCell<Runtime> = OnceCell::new();
 static VSS_CLIENT: OnceCell<Arc<Mutex<Option<VssClient>>>> = OnceCell::new();
@@ -42,20 +44,21 @@ fn ensure_runtime() -> &'static Runtime {
 }
 
 fn get_vss_client() -> &'static Arc<Mutex<Option<VssClient>>> {
-    VSS_CLIENT.get_or_init(|| {
-        Arc::new(Mutex::new(None))
-    })
+    VSS_CLIENT.get_or_init(|| Arc::new(Mutex::new(None)))
 }
 
 fn try_get_client() -> Result<VssClient, VssError> {
     let storage = get_vss_client();
     let guard = storage.lock().unwrap();
-    guard.clone().ok_or(VssError::ConnectionError {
-        error_details: "VSS client not initialized. Call vss_new_client() first.".to_string()
-    })
+    guard
+        .as_ref()
+        .ok_or(VssError::ConnectionError {
+            error_details: "VSS client not initialized. Call vss_new_client() first.".to_string(),
+        })
+        .map(|c| c.clone())
 }
 
-/// Creates a new VSS (Versioned Storage Service) client.
+/// Creates a new VSS (Versioned Storage Service) client without authentication.
 ///
 /// This function establishes a connection to a VSS server and initializes
 /// the global client for subsequent VSS operations.
@@ -63,7 +66,6 @@ fn try_get_client() -> Result<VssClient, VssError> {
 /// # Parameters
 /// - `base_url`: The base URL of the VSS server (e.g., "https://vss.example.com")
 /// - `store_id`: A unique identifier for the storage namespace/keyspace
-/// - `auth_token`: Optional authentication token for server access
 ///
 /// # Returns
 /// Ok(()) if the client was created successfully, or a VssError if the client creation fails.
@@ -72,18 +74,76 @@ fn try_get_client() -> Result<VssClient, VssError> {
 /// ```
 /// vss_new_client(
 ///     "https://vss.example.com".to_string(),
-///     "my-app-store".to_string(),
-///     Some("auth-token".to_string())
+///     "my-app-store".to_string()
 /// ).await?;
 /// ```
 #[uniffi::export]
-pub async fn vss_new_client(
-    base_url: String,
-    store_id: String,
-) -> Result<(), VssError> {
+pub async fn vss_new_client(base_url: String, store_id: String) -> Result<(), VssError> {
     execute_async!(async move {
         let client = VssClient::new(base_url, store_id).await?;
-        
+
+        let storage = get_vss_client();
+        let mut guard = storage.lock().unwrap();
+        *guard = Some(client);
+        drop(guard);
+
+        Ok(())
+    })
+}
+
+/// Creates a new VSS (Versioned Storage Service) client with LNURL-auth using a BIP39 mnemonic.
+///
+/// This function establishes a connection to a VSS server using LNURL-auth
+/// for authentication.
+///
+/// # Parameters
+/// - `base_url`: The base URL of the VSS server
+/// - `store_id`: A unique identifier for the storage namespace/keyspace
+/// - `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
+/// - `passphrase`: Optional BIP39 passphrase
+/// - `lnurl_auth_server_url`: The LNURL-auth server URL for authentication
+///
+/// # Returns
+/// Ok(()) if the client was created successfully, or a VssError if the client creation fails.
+///
+/// # Example
+/// ```
+/// vss_new_client_with_lnurl_auth(
+///     "https://vss.example.com".to_string(),
+///     "my-app-store".to_string(),
+///     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
+///     None,
+///     "https://auth.example.com/lnurl".to_string()
+/// ).await?;
+/// ```
+#[uniffi::export]
+pub async fn vss_new_client_with_lnurl_auth(
+    base_url: String,
+    store_id: String,
+    mnemonic: String,
+    passphrase: Option<String>,
+    lnurl_auth_server_url: String,
+) -> Result<(), VssError> {
+    execute_async!(async move {
+        let mnemonic = Mnemonic::from_str(&mnemonic).map_err(|e| VssError::ConnectionError {
+            error_details: format!("Invalid mnemonic: {}", e),
+        })?;
+
+        let seed = match passphrase {
+            Some(passphrase) => mnemonic.to_seed(&passphrase),
+            None => mnemonic.to_seed(""),
+        };
+        let seed_array: [u8; 32] =
+            seed[..32]
+                .try_into()
+                .map_err(|_| VssError::ConnectionError {
+                    error_details: "Failed to extract seed from mnemonic".to_string(),
+                })?;
+
+        let client =
+            VssClient::new_with_lnurl_auth(base_url, store_id, seed_array, lnurl_auth_server_url)
+                .await?;
+
         let storage = get_vss_client();
         let mut guard = storage.lock().unwrap();
         *guard = Some(client);

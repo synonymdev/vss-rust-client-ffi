@@ -73,6 +73,8 @@ void* _Nonnull uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(RustBuffer prefi
 );
 void* _Nonnull uniffi_vss_rust_client_ffi_fn_func_vss_new_client(RustBuffer base_url, RustBuffer store_id
 );
+void* _Nonnull uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth(RustBuffer base_url, RustBuffer store_id, RustBuffer mnemonic, RustBuffer passphrase, RustBuffer lnurl_auth_server_url
+);
 void* _Nonnull uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(RustBuffer items
 );
 void uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(RustCallStatus *_Nonnull out_status
@@ -207,6 +209,9 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys(void
     
 );
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_new_client(void
+    
+);
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth(void
     
 );
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix(void
