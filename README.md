@@ -32,10 +32,13 @@ cargo build --release
 ```swift
 import vss_rust_client_ffi
 
-// Initialize VSS client
-try await vssNewClient(
+// Initialize VSS client with LNURL-auth
+try await vssNewClientWithLnurlAuth(
     baseUrl: "https://vss.example.com",
-    storeId: "my-app-store"
+    storeId: "my-app-store",
+    mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    passphrase: nil,
+    lnurlAuthServerUrl: "https://auth.example.com/lnurl"
 )
 
 // Store data
@@ -70,11 +73,13 @@ vssShutdownClient()
 ```python
 from vss_rust_client_ffi import *
 
-# Initialize VSS client
-await vss_new_client(
+# Initialize VSS client with LNURL-auth
+await vss_new_client_with_lnurl_auth(
     "https://vss.example.com",
-    "my-app-store", 
-    None
+    "my-app-store",
+    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    None,  # passphrase
+    "https://auth.example.com/lnurl"
 )
 
 # Store data
@@ -112,10 +117,13 @@ vss_shutdown_client()
 ```kotlin
 import uniffi.vss_rust_client_ffi.*
 
-// Initialize VSS client
-vssNewClient(
+// Initialize VSS client with LNURL-auth
+vssNewClientWithLnurlAuth(
     baseUrl = "https://vss.example.com",
-    storeId = "my-app-store"
+    storeId = "my-app-store",
+    mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    passphrase = null,
+    lnurlAuthServerUrl = "https://auth.example.com/lnurl"
 )
 
 // Store data
@@ -146,10 +154,19 @@ vssShutdownClient()
 ### Client Management
 
 #### `vssNewClient(baseUrl: String, storeId: String) -> Void`
-Initialize the global VSS client connection.
+Initialize the global VSS client connection without authentication.
 
 - `baseUrl`: VSS server URL (e.g., "https://vss.example.com")
 - `storeId`: Unique identifier for your storage namespace  
+
+#### `vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String) -> Void`
+Initialize the global VSS client connection with LNURL-auth authentication. Provides automatic JWT token management and data encryption.
+
+- `baseUrl`: VSS server URL (e.g., "https://vss.example.com")
+- `storeId`: Unique identifier for your storage namespace
+- `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
+- `passphrase`: Optional BIP39 passphrase (pass `null` if none)
+- `lnurlAuthServerUrl`: LNURL-auth server URL for authentication
 
 #### `vssShutdownClient() -> Void`
 Shutdown the VSS client and clean up resources. Optional but recommended for clean application shutdown.
