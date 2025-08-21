@@ -78,6 +78,27 @@ mod tests {
     }
 
     #[test]
+    fn test_vss_derive_store_id() {
+        use crate::vss_derive_store_id;
+
+        let prefix = "test".to_string();
+        let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string();
+
+        // Test deterministic output
+        let store_id1 = vss_derive_store_id(prefix.clone(), mnemonic.clone(), None).unwrap();
+        let store_id2 = vss_derive_store_id(prefix.clone(), mnemonic.clone(), None).unwrap();
+        assert_eq!(store_id1, store_id2);
+        assert!(store_id1.starts_with("test_"));
+
+        // Test passphrase handling
+        let with_passphrase = vss_derive_store_id(prefix.clone(), mnemonic.clone(), Some("pass".to_string())).unwrap();
+        assert_ne!(store_id1, with_passphrase);
+
+        // Test invalid mnemonic
+        assert!(vss_derive_store_id(prefix, "invalid".to_string(), None).is_err());
+    }
+
+    #[test]
     fn test_types_creation() {
         use crate::{VssItem, KeyValue, KeyVersion};
 

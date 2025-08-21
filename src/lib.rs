@@ -6,7 +6,7 @@ mod tests;
 mod types;
 
 pub use errors::*;
-pub use implementation::VssClient;
+pub use implementation::{VssClient, derive_vss_store_id};
 pub use types::*;
 
 uniffi::setup_scaffolding!();
@@ -336,6 +336,38 @@ pub async fn vss_delete(
         let client = try_get_client()?;
         client.delete(key).await
     })
+}
+
+/// Derives a deterministic VSS store ID from a mnemonic and optional passphrase.
+///
+/// This function creates a consistent store ID that can be used across devices for the same wallet.
+/// The store ID is derived using BIP32 key derivation at a specific VSS path, ensuring it's
+/// cryptographically secure and deterministic.
+///
+/// # Parameters
+/// - `prefix`: A prefix to include in the store ID (e.g., "bitkit_v1_regtest")
+/// - `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
+/// - `passphrase`: Optional BIP39 passphrase
+///
+/// # Returns
+/// A deterministic store ID string that combines the prefix with a derived identifier.
+///
+/// # Example
+/// ```
+/// let store_id = vss_derive_store_id(
+///     "bitkit_v1_regtest".to_string(),
+///     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
+///     None
+/// )?;
+/// println!("Store ID: {}", store_id);
+/// ```
+#[uniffi::export]
+pub fn vss_derive_store_id(
+    prefix: String,
+    mnemonic: String,
+    passphrase: Option<String>,
+) -> Result<String, VssError> {
+    derive_vss_store_id(prefix, mnemonic, passphrase)
 }
 
 /// Shuts down the VSS client and clears the global client state.

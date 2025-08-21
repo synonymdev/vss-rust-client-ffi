@@ -21,9 +21,70 @@ use vss_client::util::retry::{
     MaxAttemptsRetryPolicy, MaxTotalDelayRetryPolicy, RetryPolicy,
 };
 use vss_client::util::storable_builder::{EntropySource, StorableBuilder};
+use bip39::Mnemonic;
+use std::str::FromStr;
 
 const VSS_HARDENED_CHILD_INDEX: u32 = 877;
 const VSS_LNURL_AUTH_HARDENED_CHILD_INDEX: u32 = 138;
+const VSS_STORE_ID_HARDENED_CHILD_INDEX: u32 = 118;
+const VSS_STORE_ID_HASH_LENGTH: usize = 36;
+
+/// Derives a deterministic VSS store ID from a mnemonic and optional passphrase.
+///
+/// # Parameters
+/// - `prefix`: A prefix to include in the store ID
+/// - `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
+/// - `passphrase`: Optional BIP39 passphrase
+///
+/// # Returns
+/// A store ID string or VssError on failure
+pub fn derive_vss_store_id(
+    prefix: String,
+    mnemonic: String,
+    passphrase: Option<String>,
+) -> Result<String, VssError> {
+    let mnemonic = Mnemonic::from_str(&mnemonic).map_err(|e| VssError::ConnectionError {
+        error_details: format!("Invalid mnemonic: {}", e),
+    })?;
+
+    let seed = match passphrase {
+        Some(passphrase) => mnemonic.to_seed(&passphrase),
+        None => mnemonic.to_seed(""),
+    };
+    let seed_array: [u8; 32] = seed[..32]
+        .try_into()
+        .map_err(|_| VssError::ConnectionError {
+            error_details: "Failed to extract seed from mnemonic".to_string(),
+        })?;
+
+    let secp = Secp256k1::new();
+    let master_xprv = Xpriv::new_master(Network::Bitcoin, &seed_array).map_err(|e| {
+        VssError::ConnectionError {
+            error_details: format!("Failed to create master key: {}", e),
+        }
+    })?;
+
+    let vss_store_id_xprv = master_xprv
+        .derive_priv(
+            &secp,
+            &[
+                ChildNumber::Hardened { index: VSS_HARDENED_CHILD_INDEX },
+                ChildNumber::Hardened { index: VSS_STORE_ID_HARDENED_CHILD_INDEX },
+            ],
+        )
+        .map_err(|e| VssError::ConnectionError {
+            error_details: format!("Failed to derive VSS store ID key: {}", e),
+        })?;
+
+    let store_id_key = vss_store_id_xprv.private_key.secret_bytes();
+    let hash = sha256::Hash::hash(&store_id_key);
+    let hash_hex = hash.to_string();
+
+    let store_id_suffix = &hash_hex[..VSS_STORE_ID_HASH_LENGTH];
+    let store_id = format!("{}_{}", prefix, store_id_suffix);
+
+    Ok(store_id)
+}
 
 type CustomRetryPolicy = FilteredRetryPolicy<
     JitteredRetryPolicy<
