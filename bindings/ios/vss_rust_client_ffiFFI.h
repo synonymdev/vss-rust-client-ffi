@@ -65,6 +65,8 @@ typedef void (*UniFfiRustFutureContinuation)(void * _Nonnull, int8_t);
 // Scaffolding functions
 void* _Nonnull uniffi_vss_rust_client_ffi_fn_func_vss_delete(RustBuffer key
 );
+RustBuffer uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(RustBuffer prefix, RustBuffer mnemonic, RustBuffer passphrase, RustCallStatus *_Nonnull out_status
+);
 void* _Nonnull uniffi_vss_rust_client_ffi_fn_func_vss_get(RustBuffer key
 );
 void* _Nonnull uniffi_vss_rust_client_ffi_fn_func_vss_list(RustBuffer prefix
@@ -197,6 +199,9 @@ void ffi_vss_rust_client_ffi_rust_future_free_void(void* _Nonnull handle
 void ffi_vss_rust_client_ffi_rust_future_complete_void(void* _Nonnull handle, RustCallStatus *_Nonnull out_status
 );
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_delete(void
+    
+);
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id(void
     
 );
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_get(void
