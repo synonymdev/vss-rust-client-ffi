@@ -923,6 +923,18 @@ public func vssDelete(key: String) async throws -> Bool {
     )
 }
 
+public func vssDeriveStoreId(prefix: String, mnemonic: String, passphrase: String?) throws -> String {
+    return try FfiConverterString.lift(
+        rustCallWithError(FfiConverterTypeVssError.lift) {
+            uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(
+                FfiConverterString.lower(prefix),
+                FfiConverterString.lower(mnemonic),
+                FfiConverterOptionString.lower(passphrase), $0
+            )
+        }
+    )
+}
+
 public func vssGet(key: String) async throws -> VssItem? {
     return try await uniffiRustCallAsync(
         rustFutureFunc: {
@@ -1057,6 +1069,9 @@ private var initializationResult: InitializationResult {
         return InitializationResult.contractVersionMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 46571 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 61324 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 59657 {
