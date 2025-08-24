@@ -507,6 +507,8 @@ def _uniffi_check_contract_api_version(lib):
 def _uniffi_check_api_checksums(lib):
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 46571:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 61324:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 59657:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 16435:
@@ -532,6 +534,13 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete.restype = ctypes.c_void_p
+_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id.argtypes = (
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get.argtypes = (
     _UniffiRustBuffer,
 )
@@ -832,6 +841,9 @@ _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_void.restype = None
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete.restype = ctypes.c_uint16
+_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id.argtypes = (
+)
+_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get.restype = ctypes.c_uint16
@@ -1447,6 +1459,16 @@ def vss_delete(key: "str"):
         _UniffiConverterTypeVssError,
     )
 
+def vss_derive_store_id(prefix: "str",mnemonic: "str",passphrase: "typing.Optional[str]") -> "str":
+    
+    
+    
+    return _UniffiConverterString.lift(_rust_call_with_error(_UniffiConverterTypeVssError,_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id,
+        _UniffiConverterString.lower(prefix),
+        _UniffiConverterString.lower(mnemonic),
+        _UniffiConverterOptionalString.lower(passphrase)))
+
+
 def vss_get(key: "str"):
     return _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get(
@@ -1559,6 +1581,7 @@ __all__ = [
     "ListKeyVersionsResponse",
     "VssItem",
     "vss_delete",
+    "vss_derive_store_id",
     "vss_get",
     "vss_list",
     "vss_list_keys",

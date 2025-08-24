@@ -32,12 +32,19 @@ cargo build --release
 ```swift
 import vss_rust_client_ffi
 
-// Initialize VSS client with LNURL-auth
+let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+let passphrase: String? = nil
+let storeId = try vssDeriveStoreId(
+    prefix: "bitkit_v1_regtest",
+    mnemonic: mnemonic,
+    passphrase: passphrase
+)
+
 try await vssNewClientWithLnurlAuth(
     baseUrl: "https://vss.example.com",
-    storeId: "my-app-store",
-    mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-    passphrase: nil,
+    storeId: storeId,
+    mnemonic: mnemonic,
+    passphrase: passphrase,
     lnurlAuthServerUrl: "https://auth.example.com/lnurl"
 )
 
@@ -73,12 +80,19 @@ vssShutdownClient()
 ```python
 from vss_rust_client_ffi import *
 
-# Initialize VSS client with LNURL-auth
+mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+passphrase = None
+store_id = vss_derive_store_id(
+    prefix="bitkit_v1_regtest",
+    mnemonic=mnemonic,
+    passphrase=passphrase
+)
+
 await vss_new_client_with_lnurl_auth(
     "https://vss.example.com",
-    "my-app-store",
-    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-    None,  # passphrase
+    store_id,
+    mnemonic,
+    passphrase,
     "https://auth.example.com/lnurl"
 )
 
@@ -117,12 +131,19 @@ vss_shutdown_client()
 ```kotlin
 import uniffi.vss_rust_client_ffi.*
 
-// Initialize VSS client with LNURL-auth
+val mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+val passphrase: String? = null
+val storeId = vssDeriveStoreId(
+    prefix = "bitkit_v1_regtest",
+    mnemonic = mnemonic,
+    passphrase = passphrase
+)
+
 vssNewClientWithLnurlAuth(
     baseUrl = "https://vss.example.com",
-    storeId = "my-app-store",
-    mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-    passphrase = null,
+    storeId = storeId,
+    mnemonic = mnemonic,
+    passphrase = passphrase,
     lnurlAuthServerUrl = "https://auth.example.com/lnurl"
 )
 
@@ -170,6 +191,15 @@ Initialize the global VSS client connection with LNURL-auth authentication. Prov
 
 #### `vssShutdownClient() -> Void`
 Shutdown the VSS client and clean up resources. Optional but recommended for clean application shutdown.
+
+### Utility Functions
+
+#### `vssDeriveStoreId(prefix: String, mnemonic: String, passphrase: String?) -> String`
+Derives a deterministic VSS store ID from a mnemonic and optional passphrase using BIP32 key derivation.
+
+- `prefix`: A prefix to include in the store ID (e.g., "bitkit_v1_regtest")
+- `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)  
+- `passphrase`: Optional BIP39 passphrase
 
 ### Data Operations
 

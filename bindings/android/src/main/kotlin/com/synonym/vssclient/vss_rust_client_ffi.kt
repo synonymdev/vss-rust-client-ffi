@@ -415,6 +415,13 @@ internal interface _UniFFILib : Library {
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_delete(`key`: RustBuffer.ByValue): Pointer
 
+    fun uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(
+        `prefix`: RustBuffer.ByValue,
+        `mnemonic`: RustBuffer.ByValue,
+        `passphrase`: RustBuffer.ByValue,
+        _uniffi_out_err: RustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_vss_rust_client_ffi_fn_func_vss_get(`key`: RustBuffer.ByValue): Pointer
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list(`prefix`: RustBuffer.ByValue): Pointer
@@ -650,6 +657,8 @@ internal interface _UniFFILib : Library {
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_delete(): Short
 
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id(): Short
+
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_get(): Short
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_list(): Short
@@ -682,6 +691,9 @@ private fun uniffiCheckContractApiVersion(lib: _UniFFILib) {
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 46571.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 61324.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 59657.toShort()) {
@@ -1395,6 +1407,23 @@ suspend fun `vssDelete`(`key`: String): Boolean =
         { FfiConverterBoolean.lift(it) },
         // Error FFI converter
         VssException.ErrorHandler,
+    )
+
+@Throws(VssException::class)
+fun `vssDeriveStoreId`(
+    `prefix`: String,
+    `mnemonic`: String,
+    `passphrase`: String?,
+): String =
+    FfiConverterString.lift(
+        rustCallWithError(VssException) { _status ->
+            _UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(
+                FfiConverterString.lower(`prefix`),
+                FfiConverterString.lower(`mnemonic`),
+                FfiConverterOptionalString.lower(`passphrase`),
+                _status,
+            )
+        },
     )
 
 @Throws(VssException::class)
