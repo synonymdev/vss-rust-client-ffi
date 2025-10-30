@@ -68,23 +68,24 @@ rm -rf "bindings/ios/Headers"
 rm -rf "bindings/ios/ios-arm64"
 rm -rf "bindings/ios/ios-arm64-sim"
 
-# Create temporary directories for each architecture
-echo "Creating architecture-specific directories..."
-mkdir -p "bindings/ios/ios-arm64/Headers"
-mkdir -p "bindings/ios/ios-arm64-sim/Headers"
+# Create temporary directories for each architecture with unique header folder
+UNIQUE_HEADER_FOLDER="VssRustClientFfiFFI"
+echo "Creating architecture-specific directories with unique header folder: $UNIQUE_HEADER_FOLDER..."
+mkdir -p "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER"
+mkdir -p "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER"
 
 # Copy headers to architecture-specific directories
 echo "Copying headers to architecture directories..."
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/"
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/"
+cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
+cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
+cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
+cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
 
 # Create XCFramework
 echo "Creating XCFramework..."
 xcodebuild -create-xcframework \
-    -library ./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64-sim/Headers" \
-    -library ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64/Headers" \
+    -library ./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER" \
+    -library ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER" \
     -output "bindings/ios/VssRustClientFfi.xcframework" \
     || { echo "Failed to create XCFramework"; exit 1; }
 
