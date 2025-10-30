@@ -84,8 +84,8 @@ cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEA
 # Create XCFramework
 echo "Creating XCFramework..."
 xcodebuild -create-xcframework \
-    -library ./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER" \
-    -library ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER" \
+    -library ./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64-sim/Headers" \
+    -library ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64/Headers" \
     -output "bindings/ios/VssRustClientFfi.xcframework" \
     || { echo "Failed to create XCFramework"; exit 1; }
 
@@ -93,5 +93,19 @@ xcodebuild -create-xcframework \
 echo "Cleaning up temporary directories..."
 rm -rf "bindings/ios/ios-arm64"
 rm -rf "bindings/ios/ios-arm64-sim"
+
+# Create zip file for distribution and checksum calculation
+echo "Creating XCFramework zip file..."
+rm -f ./bindings/ios/VssRustClientFfi.xcframework.zip
+ditto -c -k --sequesterRsrc --keepParent ./bindings/ios/VssRustClientFfi.xcframework ./bindings/ios/VssRustClientFfi.xcframework.zip || { echo "Failed to create zip file"; exit 1; }
+
+# Compute checksum
+echo "Computing checksum..."
+CHECKSUM=`swift package compute-checksum ./bindings/ios/VssRustClientFfi.xcframework.zip` || { echo "Failed to compute checksum"; exit 1; }
+echo "New checksum: $CHECKSUM"
+
+# Update Package.swift with the new checksum using Python script
+echo "Updating Package.swift with new checksum..."
+python3 ./update_package.py --checksum "$CHECKSUM" || { echo "Failed to update Package.swift"; exit 1; }
 
 echo "iOS build process completed successfully!"
