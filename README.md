@@ -30,7 +30,7 @@ cargo build --release
 ### Swift (iOS)
 
 ```swift
-import vss_rust_client_ffi
+import VssRustClientFfi
 
 let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 let passphrase: String? = nil
