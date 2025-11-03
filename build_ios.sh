@@ -68,17 +68,18 @@ rm -rf "bindings/ios/Headers"
 rm -rf "bindings/ios/ios-arm64"
 rm -rf "bindings/ios/ios-arm64-sim"
 
-# Create temporary directories for each architecture
-echo "Creating architecture-specific directories..."
-mkdir -p "bindings/ios/ios-arm64/Headers"
-mkdir -p "bindings/ios/ios-arm64-sim/Headers"
+# Create temporary directories for each architecture with unique header folder
+UNIQUE_HEADER_FOLDER="VssRustClientFfiFFI"
+echo "Creating architecture-specific directories with unique header folder: $UNIQUE_HEADER_FOLDER..."
+mkdir -p "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER"
+mkdir -p "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER"
 
 # Copy headers to architecture-specific directories
 echo "Copying headers to architecture directories..."
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/"
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/"
+cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
+cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
+cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
+cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
 
 # Create XCFramework
 echo "Creating XCFramework..."
@@ -92,5 +93,19 @@ xcodebuild -create-xcframework \
 echo "Cleaning up temporary directories..."
 rm -rf "bindings/ios/ios-arm64"
 rm -rf "bindings/ios/ios-arm64-sim"
+
+# Create zip file for distribution and checksum calculation
+echo "Creating XCFramework zip file..."
+rm -f ./bindings/ios/VssRustClientFfi.xcframework.zip
+ditto -c -k --sequesterRsrc --keepParent ./bindings/ios/VssRustClientFfi.xcframework ./bindings/ios/VssRustClientFfi.xcframework.zip || { echo "Failed to create zip file"; exit 1; }
+
+# Compute checksum
+echo "Computing checksum..."
+CHECKSUM=`swift package compute-checksum ./bindings/ios/VssRustClientFfi.xcframework.zip` || { echo "Failed to compute checksum"; exit 1; }
+echo "New checksum: $CHECKSUM"
+
+# Update Package.swift with the new checksum using Python script
+echo "Updating Package.swift with new checksum..."
+python3 ./update_package.py --checksum "$CHECKSUM" || { echo "Failed to update Package.swift"; exit 1; }
 
 echo "iOS build process completed successfully!"
