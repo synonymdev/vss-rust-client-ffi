@@ -931,10 +931,10 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 51694.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 58731.toShort()) {
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 51265.toShort()) {
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 63115.toShort()) {
@@ -1838,8 +1838,8 @@ public object FfiConverterSequenceTypeVssItem: FfiConverterRustBuffer<List<VssIt
          * It's useful for browsing stored data but can be expensive for large datasets.
          *
          * # Parameters
-         * - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys)
-         * If None or empty, returns all items
+         * - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys).
+         * If None or empty, returns all items.
          *
          * # Returns
          * A vector of VssItems containing all matching key-value pairs,
@@ -1876,8 +1876,8 @@ public object FfiConverterSequenceTypeVssItem: FfiConverterRustBuffer<List<VssIt
          * what keys exist and their versions, without downloading the actual data.
          *
          * # Parameters
-         * - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys)
-         * If None or empty, returns all keys
+         * - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys).
+         * If None or empty, returns all keys.
          *
          * # Returns
          * A vector of KeyVersion structs containing key names and version numbers,

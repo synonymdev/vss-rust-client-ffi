@@ -6,7 +6,7 @@ Cross-platform FFI bindings for the [VSS (Versioned Storage Service) Rust Client
 
 ### Prerequisites
 
-- Rust 1.70+
+- Rust 1.75+
 - `uniffi-bindgen` for generating bindings
 
 ### Building
@@ -305,7 +305,7 @@ For detailed testing information including integration tests, see [TESTING.md](T
 
 ## Architecture
 
-This library provides a thin FFI wrapper around the [vss-client](https://crates.io/crates/vss-client) Rust library, exposing a simplified async API suitable for mobile and cross-platform applications.
+This library provides a thin FFI wrapper around the [vss-client-ng](https://crates.io/crates/vss-client-ng) Rust library, exposing a simplified async API suitable for mobile and cross-platform applications.
 
 ## Contributing
 
@@ -323,5 +323,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Related Projects
 
 - [VSS Server](https://github.com/lightningdevkit/vss-server) - The VSS server implementation
-- [vss-client](https://crates.io/crates/vss-client) - The underlying Rust client library
+- [vss-client-ng](https://crates.io/crates/vss-client-ng) - The underlying Rust client library
 - [UniFFI](https://mozilla.github.io/uniffi-rs/) - The FFI binding generator
