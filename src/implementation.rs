@@ -8,19 +8,19 @@ use prost::Message;
 use rand::RngCore;
 use std::collections::HashMap;
 use std::sync::Arc;
-use vss_client::client::VssClient as ExternalVssClient;
-use vss_client::error::VssError as ExternalVssError;
-use vss_client::headers::{FixedHeaders, LnurlAuthToJwtProvider, VssHeaderProvider};
-use vss_client::types::{
+use vss_client_ng::client::VssClient as ExternalVssClient;
+use vss_client_ng::error::VssError as ExternalVssError;
+use vss_client_ng::headers::{FixedHeaders, LnurlAuthToJwtProvider, VssHeaderProvider};
+use vss_client_ng::types::{
     DeleteObjectRequest, GetObjectRequest, KeyValue as ExternalKeyValue, ListKeyVersionsRequest,
     PutObjectRequest, Storable,
 };
-use vss_client::util::key_obfuscator::KeyObfuscator;
-use vss_client::util::retry::{
+use vss_client_ng::util::key_obfuscator::KeyObfuscator;
+use vss_client_ng::util::retry::{
     ExponentialBackoffRetryPolicy, FilteredRetryPolicy, JitteredRetryPolicy,
     MaxAttemptsRetryPolicy, MaxTotalDelayRetryPolicy, RetryPolicy,
 };
-use vss_client::util::storable_builder::{EntropySource, StorableBuilder};
+use vss_client_ng::util::storable_builder::{EntropySource, StorableBuilder};
 use bip39::Mnemonic;
 use std::str::FromStr;
 
@@ -109,6 +109,7 @@ pub struct VssClient {
     inner: Arc<ExternalVssClient<CustomRetryPolicy>>,
     store_id: String,
     storable_builder: Arc<StorableBuilder<RandEntropySource>>,
+    data_encryption_key: [u8; 32],
     key_obfuscator: Option<Arc<KeyObfuscator>>,
 }
 
@@ -207,22 +208,23 @@ impl VssClient {
 
         let client = ExternalVssClient::new_with_headers(base_url, retry_policy, header_provider);
 
-        let (storable_builder, key_obfuscator) = if let Some(seed) = vss_seed {
-            let (data_encryption_key, obfuscation_master_key) =
+        let storable_builder = Arc::new(StorableBuilder::new(RandEntropySource));
+
+        let (data_encryption_key, key_obfuscator) = if let Some(seed) = vss_seed {
+            let (dek, obfuscation_master_key) =
                 derive_data_encryption_and_obfuscation_keys(&seed);
-            let builder = Arc::new(StorableBuilder::new(data_encryption_key, RandEntropySource));
             let obfuscator = Some(Arc::new(KeyObfuscator::new(obfuscation_master_key)));
-            (builder, obfuscator)
+            (dek, obfuscator)
         } else {
             let zero_key = [0u8; 32];
-            let builder = Arc::new(StorableBuilder::new(zero_key, RandEntropySource));
-            (builder, None)
+            (zero_key, None)
         };
 
         Ok(VssClient {
             inner: Arc::new(client),
             store_id,
             storable_builder,
+            data_encryption_key,
             key_obfuscator,
         })
     }
@@ -237,14 +239,16 @@ impl VssClient {
     /// VssItem with the stored data and assigned version
     pub async fn store(&self, key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
         let version = -1;
-        let storable = self.storable_builder.build(value.clone(), version);
+        let storage_key = self.build_key(&key);
+        // Use the storage key as AAD (Associated Authenticated Data) for encryption
+        let storable = self.storable_builder.build(value.clone(), version, &self.data_encryption_key, storage_key.as_bytes());
         let encrypted_value = storable.encode_to_vec();
 
         let request = PutObjectRequest {
             store_id: self.store_id.clone(),
             global_version: None,
             transaction_items: vec![ExternalKeyValue {
-                key: self.build_key(&key),
+                key: storage_key,
                 version,
                 value: encrypted_value,
             }],
@@ -271,9 +275,10 @@ impl VssClient {
     /// # Returns
     /// Some(VssItem) if found, None if key doesn't exist
     pub async fn get(&self, key: String) -> Result<Option<VssItem>, VssError> {
+        let storage_key = self.build_key(&key);
         let request = GetObjectRequest {
             store_id: self.store_id.clone(),
-            key: self.build_key(&key),
+            key: storage_key.clone(),
         };
 
         match self.inner.get_object(&request).await {
@@ -284,9 +289,10 @@ impl VssClient {
                             error_details: format!("Failed to decode storable: {}", e),
                         })?;
 
+                    // Use the storage key as AAD (Associated Authenticated Data) for decryption
                     let (decrypted_value, _) = self
                         .storable_builder
-                        .deconstruct(storable)
+                        .deconstruct(storable, &self.data_encryption_key, storage_key.as_bytes())
                         .map_err(|e| VssError::GetError {
                             error_details: format!("Failed to decrypt data: {}", e),
                         })?;
@@ -385,9 +391,11 @@ impl VssClient {
         let external_items: Vec<ExternalKeyValue> = items
             .iter()
             .map(|item| {
-                let storable = self.storable_builder.build(item.value.clone(), version);
+                let storage_key = self.build_key(&item.key);
+                // Use the storage key as AAD (Associated Authenticated Data) for encryption
+                let storable = self.storable_builder.build(item.value.clone(), version, &self.data_encryption_key, storage_key.as_bytes());
                 ExternalKeyValue {
-                    key: self.build_key(&item.key),
+                    key: storage_key,
                     value: storable.encode_to_vec(),
                     version,
                 }

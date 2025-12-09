@@ -55,7 +55,7 @@ fn try_get_client() -> Result<VssClient, VssError> {
         .ok_or(VssError::ConnectionError {
             error_details: "VSS client not initialized. Call vss_new_client() first.".to_string(),
         })
-        .map(|c| c.clone())
+        .cloned()
 }
 
 /// Creates a new VSS (Versioned Storage Service) client without authentication.
@@ -220,8 +220,8 @@ pub async fn vss_get(
 /// It's useful for browsing stored data but can be expensive for large datasets.
 ///
 /// # Parameters
-/// - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys)
-///             If None or empty, returns all items
+/// - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys).
+///   If None or empty, returns all items.
 ///
 /// # Returns
 /// A vector of VssItems containing all matching key-value pairs,
@@ -251,8 +251,8 @@ pub async fn vss_list(
 /// what keys exist and their versions, without downloading the actual data.
 ///
 /// # Parameters
-/// - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys)
-///             If None or empty, returns all keys
+/// - `prefix`: Optional key prefix filter (e.g., "user/" to get all user keys).
+///   If None or empty, returns all keys.
 ///
 /// # Returns
 /// A vector of KeyVersion structs containing key names and version numbers,
