@@ -133,15 +133,9 @@ pub async fn vss_new_client_with_lnurl_auth(
             Some(passphrase) => mnemonic.to_seed(&passphrase),
             None => mnemonic.to_seed(""),
         };
-        let seed_array: [u8; 32] =
-            seed[..32]
-                .try_into()
-                .map_err(|_| VssError::ConnectionError {
-                    error_details: "Failed to extract seed from mnemonic".to_string(),
-                })?;
 
         let client =
-            VssClient::new_with_lnurl_auth(base_url, store_id, seed_array, lnurl_auth_server_url)
+            VssClient::new_with_lnurl_auth(base_url, store_id, seed, lnurl_auth_server_url)
                 .await?;
 
         let storage = get_vss_client();

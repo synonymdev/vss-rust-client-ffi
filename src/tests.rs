@@ -44,7 +44,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_vss_client_creation_with_lnurl_auth() {
-        let seed = [42u8; 32]; // Test seed
+        let seed = [42u8; 64]; // Test seed (full BIP39 seed)
         let result = VssClient::new_with_lnurl_auth(
             MOCK_BASE_URL.to_string(),
             TEST_STORE_ID.to_string(),

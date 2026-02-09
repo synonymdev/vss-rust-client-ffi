@@ -138,7 +138,7 @@ impl VssClient {
     /// # Parameters
     /// - `base_url`: The VSS server URL
     /// - `store_id`: The storage namespace identifier
-    /// - `seed`: The seed bytes for key derivation (32 bytes)
+    /// - `seed`: The full BIP39 seed bytes for key derivation (64 bytes)
     /// - `lnurl_auth_server_url`: The LNURL-auth server URL
     ///
     /// # Returns
@@ -146,7 +146,7 @@ impl VssClient {
     pub async fn new_with_lnurl_auth(
         base_url: String,
         store_id: String,
-        seed: [u8; 32],
+        seed: [u8; 64],
         lnurl_auth_server_url: String,
     ) -> Result<Self, VssError> {
         let secp = Secp256k1::new();
