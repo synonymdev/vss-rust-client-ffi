@@ -338,6 +338,51 @@ pub async fn vss_delete(
     })
 }
 
+/// Stores a key-value pair using ldk-node's namespaced key format.
+#[uniffi::export]
+pub async fn vss_store_ldk(key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
+    execute_async!(async move {
+        let client = try_get_client()?;
+        client.store_ldk(key, value).await
+    })
+}
+
+/// Retrieves a value by key using ldk-node's namespaced key format.
+#[uniffi::export]
+pub async fn vss_get_ldk(key: String) -> Result<Option<VssItem>, VssError> {
+    execute_async!(async move {
+        let client = try_get_client()?;
+        client.get_ldk(key).await
+    })
+}
+
+/// Deletes a key-value pair using ldk-node's namespaced key format.
+#[uniffi::export]
+pub async fn vss_delete_ldk(key: String) -> Result<bool, VssError> {
+    execute_async!(async move {
+        let client = try_get_client()?;
+        client.delete_ldk(key).await
+    })
+}
+
+/// Lists keys and versions using ldk-node's namespaced key format.
+#[uniffi::export]
+pub async fn vss_list_keys_ldk() -> Result<Vec<KeyVersion>, VssError> {
+    execute_async!(async move {
+        let client = try_get_client()?;
+        client.list_keys_ldk().await
+    })
+}
+
+/// Lists all items using ldk-node's namespaced key format.
+#[uniffi::export]
+pub async fn vss_list_ldk() -> Result<Vec<VssItem>, VssError> {
+    execute_async!(async move {
+        let client = try_get_client()?;
+        client.list_ldk().await
+    })
+}
+
 /// Derives a deterministic VSS store ID from a mnemonic and optional passphrase.
 ///
 /// This function creates a consistent store ID that can be used across devices for the same wallet.
