@@ -1118,6 +1118,24 @@ public func vssDelete(key: String) async throws -> Bool {
 }
 
 /**
+ * Deletes a key-value pair using ldk-node's namespaced key format.
+ */
+public func vssDeleteLdk(key: String) async throws -> Bool {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(FfiConverterString.lower(key)
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_i8,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_i8,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_i8,
+            liftFunc: FfiConverterBool.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
  * Derives a deterministic VSS store ID from a mnemonic and optional passphrase.
  *
  * This function creates a consistent store ID that can be used across devices for the same wallet.
@@ -1178,6 +1196,24 @@ public func vssGet(key: String) async throws -> VssItem? {
         try await uniffiRustCallAsync(
             rustFutureFunc: {
                 uniffi_vss_rust_client_ffi_fn_func_vss_get(FfiConverterString.lower(key)
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionTypeVssItem.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Retrieves a value by key using ldk-node's namespaced key format.
+ */
+public func vssGetLdk(key: String) async throws -> VssItem? {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(FfiConverterString.lower(key)
                 )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
@@ -1260,6 +1296,42 @@ public func vssListKeys(prefix: String?) async throws -> [KeyVersion] {
             completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
             freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
             liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Lists keys and versions using ldk-node's namespaced key format.
+ */
+public func vssListKeysLdk() async throws -> [KeyVersion] {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Lists all items using ldk-node's namespaced key format.
+ */
+public func vssListLdk() async throws -> [VssItem] {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeVssItem.lift,
             errorHandler: FfiConverterTypeVssError.lift
         )
 }
@@ -1432,6 +1504,23 @@ public func vssStore(key: String, value: Data) async throws -> VssItem {
         )
 }
 
+/**
+ * Stores a key-value pair using ldk-node's namespaced key format.
+ */
+public func vssStoreLdk(key: String, value: Data) async throws -> VssItem {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(FfiConverterString.lower(key), FfiConverterData.lower(value))
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeVssItem.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
 private enum InitializationResult {
     case ok
     case contractVersionMismatch
@@ -1451,16 +1540,28 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 13005 {
         return InitializationResult.apiChecksumMismatch
     }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 59772 {
+        return InitializationResult.apiChecksumMismatch
+    }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 17660 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 51694 {
         return InitializationResult.apiChecksumMismatch
     }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 6017 {
+        return InitializationResult.apiChecksumMismatch
+    }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 47656 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 41749 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 63115 {
@@ -1476,6 +1577,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42494 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 65273 {
         return InitializationResult.apiChecksumMismatch
     }
 
