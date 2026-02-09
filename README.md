@@ -15,6 +15,9 @@ Cross-platform FFI bindings for the [VSS (Versioned Storage Service) Rust Client
 # Basic build
 cargo build --release
 
+# Generate ALL bindings
+./build.sh all
+
 # Generate Swift bindings for iOS
 ./build_ios.sh
 
@@ -75,6 +78,26 @@ print("Deleted: \(wasDeleted)")
 vssShutdownClient()
 ```
 
+#### LDK-Specific Operations (Swift)
+
+For interacting with data stored by ldk-node's VssStore (e.g., `network_graph`, `channel_manager`, `scorer`), use the LDK variants which produce the correct namespaced key format:
+
+```swift
+// Delete an ldk-node key (e.g., stale network graph)
+let wasDeleted = try await vssDeleteLdk(key: "network_graph")
+
+// Read an ldk-node key
+if let item = try await vssGetLdk(key: "network_graph") {
+    print("Graph size: \(item.value.count) bytes")
+}
+
+// List all ldk-node keys
+let ldkKeys = try await vssListKeysLdk()
+for kv in ldkKeys {
+    print("LDK key: \(kv.key), Version: \(kv.version)")
+}
+```
+
 ### Python
 
 ```python
@@ -126,6 +149,21 @@ print(f"Deleted: {was_deleted}")
 vss_shutdown_client()
 ```
 
+#### LDK-Specific Operations (Python)
+
+```python
+# Delete an ldk-node key
+was_deleted = await vss_delete_ldk("network_graph")
+
+# Read an ldk-node key
+item = await vss_get_ldk("network_graph")
+
+# List all ldk-node keys
+ldk_keys = await vss_list_keys_ldk()
+for kv in ldk_keys:
+    print(f"LDK key: {kv.key}, Version: {kv.version}")
+```
+
 ### Kotlin (Android)
 
 ```kotlin
@@ -168,6 +206,21 @@ items.forEach { item ->
 
 // Clean shutdown (optional)
 vssShutdownClient()
+```
+
+#### LDK-Specific Operations (Kotlin)
+
+```kotlin
+// Delete an ldk-node key (e.g., stale network graph)
+val wasDeleted = vssDeleteLdk(key = "network_graph")
+
+// Read an ldk-node key
+val graph = vssGetLdk(key = "network_graph")
+graph?.let { println("Graph size: ${it.value.size} bytes") }
+
+// List all ldk-node keys
+val ldkKeys = vssListKeysLdk()
+ldkKeys.forEach { println("LDK key: ${it.key}, Version: ${it.version}") }
 ```
 
 ## API Reference
@@ -220,6 +273,27 @@ Store multiple items in a single atomic transaction. The server manages versioni
 
 #### `vssDelete(key: String) -> Bool`
 Delete an item. Returns `true` if item existed and was deleted.
+
+### LDK Data Operations
+
+These methods use the ldk-node VssStore V1 namespaced key format (`obf("primary#secondary")#obf("key")`). Use them to interact with data written by ldk-node (e.g., `network_graph`, `channel_manager`, `scorer`).
+
+The standard `vssStore`/`vssGet`/`vssDelete` methods use a flat key format and **cannot** read or delete keys written by ldk-node.
+
+#### `vssStoreLdk(key: String, value: Data) -> VssItem`
+Store a key-value pair using ldk-node's namespaced key format.
+
+#### `vssGetLdk(key: String) -> VssItem?`
+Retrieve an item by key using ldk-node's namespaced key format. Returns `null` if not found.
+
+#### `vssDeleteLdk(key: String) -> Bool`
+Delete an item using ldk-node's namespaced key format. Returns `true` if item existed and was deleted.
+
+#### `vssListKeysLdk() -> [KeyVersion]`
+List all keys stored by ldk-node with their versions.
+
+#### `vssListLdk() -> [VssItem]`
+List all items stored by ldk-node with their full data.
 
 ### Data Types
 
