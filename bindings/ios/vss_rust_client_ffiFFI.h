@@ -256,6 +256,11 @@ typedef void (*UniffiForeignFutureCompleteVoid)(uint64_t, UniffiForeignFutureStr
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_delete(RustBuffer key
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_DELETE_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_DELETE_LDK
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(RustBuffer key
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_DERIVE_STORE_ID
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_DERIVE_STORE_ID
 RustBuffer uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(RustBuffer prefix, RustBuffer mnemonic, RustBuffer passphrase, RustCallStatus *_Nonnull out_status
@@ -266,6 +271,11 @@ RustBuffer uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(RustBuffer pre
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get(RustBuffer key
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_GET_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_GET_LDK
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(RustBuffer key
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list(RustBuffer prefix
@@ -274,6 +284,18 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list(RustBuffer prefix
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(RustBuffer prefix
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS_LDK
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_LDK
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(void
+    
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_NEW_CLIENT
@@ -300,6 +322,11 @@ void uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(RustCallStatus *_Non
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_STORE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_STORE
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_store(RustBuffer key, RustBuffer value
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_STORE_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_STORE_LDK
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(RustBuffer key, RustBuffer value
 );
 #endif
 #ifndef UNIFFI_FFIDEF_FFI_VSS_RUST_CLIENT_FFI_RUSTBUFFER_ALLOC
@@ -588,6 +615,12 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_delete(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DELETE_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DELETE_LDK
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DERIVE_STORE_ID
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DERIVE_STORE_ID
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id(void
@@ -600,6 +633,12 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_get(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_GET_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_GET_LDK
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list(void
@@ -609,6 +648,18 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_KEYS
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_KEYS_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_KEYS_LDK
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_LDK
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk(void
     
 );
 #endif
@@ -639,6 +690,12 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_STORE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_STORE
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_store(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_STORE_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_STORE_LDK
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk(void
     
 );
 #endif
