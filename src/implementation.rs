@@ -29,6 +29,11 @@ const VSS_LNURL_AUTH_HARDENED_CHILD_INDEX: u32 = 138;
 const VSS_STORE_ID_HARDENED_CHILD_INDEX: u32 = 118;
 const VSS_STORE_ID_HASH_LENGTH: usize = 36;
 
+/// Mirrors `NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE` from rust-lightning `persist.rs:78`.
+const NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE: &str = "";
+/// Mirrors `NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE` from rust-lightning `persist.rs:82`.
+const NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE: &str = "";
+
 /// Derives a deterministic VSS store ID from a mnemonic and optional passphrase.
 ///
 /// # Parameters
@@ -239,7 +244,7 @@ impl VssClient {
     /// VssItem with the stored data and assigned version
     pub async fn store(&self, key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
         let version = -1;
-        let storage_key = self.build_key(&key);
+        let storage_key = self.build_key(&key, None, None);
         // Use the storage key as AAD (Associated Authenticated Data) for encryption
         let storable = self.storable_builder.build(value.clone(), version, &self.data_encryption_key, storage_key.as_bytes());
         let encrypted_value = storable.encode_to_vec();
@@ -275,7 +280,7 @@ impl VssClient {
     /// # Returns
     /// Some(VssItem) if found, None if key doesn't exist
     pub async fn get(&self, key: String) -> Result<Option<VssItem>, VssError> {
-        let storage_key = self.build_key(&key);
+        let storage_key = self.build_key(&key, None, None);
         let request = GetObjectRequest {
             store_id: self.store_id.clone(),
             key: storage_key.clone(),
@@ -321,7 +326,7 @@ impl VssClient {
     pub async fn list(&self, prefix: Option<String>) -> Result<Vec<VssItem>, VssError> {
         let request = ListKeyVersionsRequest {
             store_id: self.store_id.clone(),
-            key_prefix: prefix.as_ref().map(|p| self.build_key(p)),
+            key_prefix: prefix.as_ref().map(|p| self.build_key(p, None, None)),
             page_size: None,
             page_token: None,
         };
@@ -354,7 +359,7 @@ impl VssClient {
     pub async fn list_keys(&self, prefix: Option<String>) -> Result<Vec<KeyVersion>, VssError> {
         let request = ListKeyVersionsRequest {
             store_id: self.store_id.clone(),
-            key_prefix: prefix.as_ref().map(|p| self.build_key(p)),
+            key_prefix: prefix.as_ref().map(|p| self.build_key(p, None, None)),
             page_size: None,
             page_token: None,
         };
@@ -391,7 +396,7 @@ impl VssClient {
         let external_items: Vec<ExternalKeyValue> = items
             .iter()
             .map(|item| {
-                let storage_key = self.build_key(&item.key);
+                let storage_key = self.build_key(&item.key, None, None);
                 // Use the storage key as AAD (Associated Authenticated Data) for encryption
                 let storable = self.storable_builder.build(item.value.clone(), version, &self.data_encryption_key, storage_key.as_bytes());
                 ExternalKeyValue {
@@ -435,7 +440,7 @@ impl VssClient {
         let request = DeleteObjectRequest {
             store_id: self.store_id.clone(),
             key_value: Some(ExternalKeyValue {
-                key: self.build_key(&key),
+                key: self.build_key(&key, None, None),
                 version: -1,
                 value: vec![],
             }),
@@ -448,18 +453,166 @@ impl VssClient {
         }
     }
 
-    /// Converts a user key to storage key (obfuscated if encryption is enabled)
-    fn build_key(&self, key: &str) -> String {
+    /// Stores a key-value pair using ldk-node's namespaced key format.
+    pub async fn store_ldk(&self, key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
+        let version = -1;
+        let storage_key = self.build_key(
+            &key,
+            Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE),
+            Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE),
+        );
+        let storable = self.storable_builder.build(
+            value.clone(),
+            version,
+            &self.data_encryption_key,
+            storage_key.as_bytes(),
+        );
+        let request = PutObjectRequest {
+            store_id: self.store_id.clone(),
+            global_version: None,
+            transaction_items: vec![ExternalKeyValue {
+                key: storage_key,
+                version,
+                value: storable.encode_to_vec(),
+            }],
+            delete_items: vec![],
+        };
+        match self.inner.put_object(&request).await {
+            Ok(_) => Ok(VssItem { key, value, version: -1 }),
+            Err(e) => Err(convert_error(e, "store_ldk")),
+        }
+    }
+
+    /// Retrieves a value by key using ldk-node's namespaced key format.
+    pub async fn get_ldk(&self, key: String) -> Result<Option<VssItem>, VssError> {
+        let storage_key = self.build_key(
+            &key,
+            Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE),
+            Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE),
+        );
+        let request = GetObjectRequest {
+            store_id: self.store_id.clone(),
+            key: storage_key.clone(),
+        };
+        match self.inner.get_object(&request).await {
+            Ok(response) => {
+                if let Some(kv) = response.value {
+                    let storable =
+                        Storable::decode(&kv.value[..]).map_err(|e| VssError::GetError {
+                            error_details: format!("Failed to decode storable: {}", e),
+                        })?;
+                    let (decrypted_value, _) = self
+                        .storable_builder
+                        .deconstruct(storable, &self.data_encryption_key, storage_key.as_bytes())
+                        .map_err(|e| VssError::GetError {
+                            error_details: format!("Failed to decrypt data: {}", e),
+                        })?;
+                    Ok(Some(VssItem {
+                        key,
+                        value: decrypted_value,
+                        version: kv.version,
+                    }))
+                } else {
+                    Ok(None)
+                }
+            }
+            Err(ExternalVssError::NoSuchKeyError(_)) => Ok(None),
+            Err(e) => Err(convert_error(e, "get_ldk")),
+        }
+    }
+
+    /// Deletes a key-value pair using ldk-node's namespaced key format.
+    pub async fn delete_ldk(&self, key: String) -> Result<bool, VssError> {
+        let request = DeleteObjectRequest {
+            store_id: self.store_id.clone(),
+            key_value: Some(ExternalKeyValue {
+                key: self.build_key(
+                    &key,
+                    Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE),
+                    Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE),
+                ),
+                version: -1,
+                value: vec![],
+            }),
+        };
+        match self.inner.delete_object(&request).await {
+            Ok(_) => Ok(true),
+            Err(ExternalVssError::NoSuchKeyError(_)) => Ok(false),
+            Err(e) => Err(convert_error(e, "delete_ldk")),
+        }
+    }
+
+    /// Lists keys and versions using ldk-node's namespaced key format.
+    pub async fn list_keys_ldk(&self) -> Result<Vec<KeyVersion>, VssError> {
+        let namespace_prefix = self.build_key(
+            "",
+            Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE),
+            Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE),
+        );
+        let request = ListKeyVersionsRequest {
+            store_id: self.store_id.clone(),
+            key_prefix: Some(namespace_prefix),
+            page_size: None,
+            page_token: None,
+        };
+        match self.inner.list_key_versions(&request).await {
+            Ok(response) => {
+                let mut result = Vec::new();
+                for kv in response.key_versions {
+                    let original_key = self.extract_key(&kv.key)?;
+                    result.push(KeyVersion {
+                        key: original_key,
+                        version: kv.version,
+                    });
+                }
+                Ok(result)
+            }
+            Err(e) => Err(convert_error(e, "list_keys_ldk")),
+        }
+    }
+
+    /// Lists all items using ldk-node's namespaced key format.
+    pub async fn list_ldk(&self) -> Result<Vec<VssItem>, VssError> {
+        let keys = self.list_keys_ldk().await?;
+        let mut items = Vec::new();
+        for kv in keys {
+            if let Ok(Some(item)) = self.get_ldk(kv.key).await {
+                items.push(item);
+            }
+        }
+        Ok(items)
+    }
+
+    /// Converts a user key to storage key (obfuscated if encryption is enabled).
+    /// When `primary_namespace` and `secondary_namespace` are provided, produces
+    /// the ldk-node VssStore V1 key format: `obf("primary#secondary")#obf("key")`.
+    fn build_key(&self, key: &str, primary_namespace: Option<&str>, secondary_namespace: Option<&str>) -> String {
         if let Some(ref obfuscator) = self.key_obfuscator {
-            obfuscator.obfuscate(key)
+            match (primary_namespace, secondary_namespace) {
+                (Some(pn), Some(sn)) => {
+                    let prefix = format!("{}#{}", pn, sn);
+                    let obfuscated_prefix = obfuscator.obfuscate(&prefix);
+                    let obfuscated_key = obfuscator.obfuscate(key);
+                    format!("{}#{}", obfuscated_prefix, obfuscated_key)
+                }
+                _ => obfuscator.obfuscate(key),
+            }
         } else {
             key.to_string()
         }
     }
 
-    /// Converts a storage key back to user key (deobfuscated if encryption is enabled)
+    /// Converts a storage key back to user key (deobfuscated if encryption is enabled).
+    /// Handles both flat format `obf("key")` and namespaced format `obf("ns")#obf("key")`.
     fn extract_key(&self, storage_key: &str) -> Result<String, VssError> {
         if let Some(ref obfuscator) = self.key_obfuscator {
+            // Try namespaced format: "obf_prefix#obf_key"
+            if let Some((_prefix, obfuscated_key)) = storage_key.rsplit_once('#') {
+                if let Ok(key) = obfuscator.deobfuscate(obfuscated_key) {
+                    return Ok(key);
+                }
+            }
+            // Fall back to flat format
             obfuscator.deobfuscate(storage_key).map_err(|e| VssError::ListError {
                 error_details: format!("Failed to deobfuscate key: {}", e),
             })
