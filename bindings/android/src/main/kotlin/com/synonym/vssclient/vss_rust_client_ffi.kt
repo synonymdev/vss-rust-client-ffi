@@ -773,7 +773,11 @@ internal interface UniffiLib : Library {
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_delete(`key`: RustBuffer.ByValue): Long
 
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(`key`: RustBuffer.ByValue): Long
+    fun uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(
+        `key`: RustBuffer.ByValue,
+        `primaryNamespace`: RustBuffer.ByValue,
+        `secondaryNamespace`: RustBuffer.ByValue,
+    ): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(
         `prefix`: RustBuffer.ByValue,
@@ -784,15 +788,25 @@ internal interface UniffiLib : Library {
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_get(`key`: RustBuffer.ByValue): Long
 
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(`key`: RustBuffer.ByValue): Long
+    fun uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(
+        `key`: RustBuffer.ByValue,
+        `primaryNamespace`: RustBuffer.ByValue,
+        `secondaryNamespace`: RustBuffer.ByValue,
+    ): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list(`prefix`: RustBuffer.ByValue): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(`prefix`: RustBuffer.ByValue): Long
 
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(): Long
+    fun uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(
+        `primaryNamespace`: RustBuffer.ByValue,
+        `secondaryNamespace`: RustBuffer.ByValue,
+    ): Long
 
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(): Long
+    fun uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(
+        `primaryNamespace`: RustBuffer.ByValue,
+        `secondaryNamespace`: RustBuffer.ByValue,
+    ): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_new_client(
         `baseUrl`: RustBuffer.ByValue,
@@ -819,6 +833,8 @@ internal interface UniffiLib : Library {
     fun uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(
         `key`: RustBuffer.ByValue,
         `value`: RustBuffer.ByValue,
+        `primaryNamespace`: RustBuffer.ByValue,
+        `secondaryNamespace`: RustBuffer.ByValue,
     ): Long
 
     fun ffi_vss_rust_client_ffi_rustbuffer_alloc(
@@ -1085,7 +1101,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 13005.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 59772.toShort()) {
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 15871.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 17660.toShort()) {
@@ -1094,7 +1110,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 51694.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 6017.toShort()) {
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 54805.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842.toShort()) {
@@ -1103,10 +1119,10 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 47656.toShort()) {
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 517.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 41749.toShort()) {
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 57286.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 63115.toShort()) {
@@ -1124,7 +1140,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42494.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 65273.toShort()) {
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 9766.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1972,9 +1988,17 @@ suspend fun `vssDelete`(`key`: kotlin.String): kotlin.Boolean =
  */
 @Throws(VssException::class)
 @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-suspend fun `vssDeleteLdk`(`key`: kotlin.String): kotlin.Boolean =
+suspend fun `vssDeleteLdk`(
+    `key`: kotlin.String,
+    `primaryNamespace`: kotlin.String,
+    `secondaryNamespace`: kotlin.String,
+): kotlin.Boolean =
     uniffiRustCallAsync(
-        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(FfiConverterString.lower(`key`)),
+        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(
+            FfiConverterString.lower(`key`),
+            FfiConverterString.lower(`primaryNamespace`),
+            FfiConverterString.lower(`secondaryNamespace`),
+        ),
         {
             future,
             callback,
@@ -2078,9 +2102,17 @@ suspend fun `vssGet`(`key`: kotlin.String): VssItem? =
  */
 @Throws(VssException::class)
 @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-suspend fun `vssGetLdk`(`key`: kotlin.String): VssItem? =
+suspend fun `vssGetLdk`(
+    `key`: kotlin.String,
+    `primaryNamespace`: kotlin.String,
+    `secondaryNamespace`: kotlin.String,
+): VssItem? =
     uniffiRustCallAsync(
-        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(FfiConverterString.lower(`key`)),
+        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(
+            FfiConverterString.lower(`key`),
+            FfiConverterString.lower(`primaryNamespace`),
+            FfiConverterString.lower(`secondaryNamespace`),
+        ),
         {
             future,
             callback,
@@ -2187,9 +2219,15 @@ suspend fun `vssListKeys`(`prefix`: kotlin.String?): List<KeyVersion> =
  */
 @Throws(VssException::class)
 @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-suspend fun `vssListKeysLdk`(): List<KeyVersion> =
+suspend fun `vssListKeysLdk`(
+    `primaryNamespace`: kotlin.String,
+    `secondaryNamespace`: kotlin.String,
+): List<KeyVersion> =
     uniffiRustCallAsync(
-        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(),
+        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(
+            FfiConverterString.lower(`primaryNamespace`),
+            FfiConverterString.lower(`secondaryNamespace`),
+        ),
         {
             future,
             callback,
@@ -2210,9 +2248,15 @@ suspend fun `vssListKeysLdk`(): List<KeyVersion> =
  */
 @Throws(VssException::class)
 @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-suspend fun `vssListLdk`(): List<VssItem> =
+suspend fun `vssListLdk`(
+    `primaryNamespace`: kotlin.String,
+    `secondaryNamespace`: kotlin.String,
+): List<VssItem> =
     uniffiRustCallAsync(
-        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(),
+        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(
+            FfiConverterString.lower(`primaryNamespace`),
+            FfiConverterString.lower(`secondaryNamespace`),
+        ),
         {
             future,
             callback,
@@ -2448,11 +2492,15 @@ suspend fun `vssStore`(
 suspend fun `vssStoreLdk`(
     `key`: kotlin.String,
     `value`: kotlin.ByteArray,
+    `primaryNamespace`: kotlin.String,
+    `secondaryNamespace`: kotlin.String,
 ): VssItem =
     uniffiRustCallAsync(
         UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(
             FfiConverterString.lower(`key`),
             FfiConverterByteArray.lower(`value`),
+            FfiConverterString.lower(`primaryNamespace`),
+            FfiConverterString.lower(`secondaryNamespace`),
         ),
         {
             future,
