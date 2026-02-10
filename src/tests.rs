@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
+    use crate::types::LdkNamespace;
 
     // Unit tests for client creation and basic functionality
     //
@@ -199,7 +200,7 @@ mod tests {
         .await
         .unwrap();
 
-        let ldk_storage_key = client.build_key_ldk("graph", "", "");
+        let ldk_storage_key = client.build_key_ldk("graph", &LdkNamespace::Default);
 
         // LDK key should be obfuscated with namespace prefix
         assert_ne!(ldk_storage_key, "graph");
@@ -221,7 +222,7 @@ mod tests {
         .unwrap();
 
         let app_storage_key = client.build_key("test_key");
-        let ldk_storage_key = client.build_key_ldk("test_key", "", "");
+        let ldk_storage_key = client.build_key_ldk("test_key", &LdkNamespace::Default);
 
         // App and LDK storage keys must differ (different obfuscators + format)
         assert_ne!(app_storage_key, ldk_storage_key);

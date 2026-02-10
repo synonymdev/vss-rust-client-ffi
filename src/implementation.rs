@@ -428,11 +428,10 @@ impl VssClient {
         &self,
         key: String,
         value: Vec<u8>,
-        primary_namespace: String,
-        secondary_namespace: String,
+        namespace: &LdkNamespace,
     ) -> Result<VssItem, VssError> {
         let version = -1;
-        let storage_key = self.build_key_ldk(&key, &primary_namespace, &secondary_namespace);
+        let storage_key = self.build_key_ldk(&key, namespace);
         let storable = self.storable_builder.build(
             value.clone(),
             version,
@@ -460,10 +459,9 @@ impl VssClient {
     pub async fn get_ldk(
         &self,
         key: String,
-        primary_namespace: String,
-        secondary_namespace: String,
+        namespace: &LdkNamespace,
     ) -> Result<Option<VssItem>, VssError> {
-        let storage_key = self.build_key_ldk(&key, &primary_namespace, &secondary_namespace);
+        let storage_key = self.build_key_ldk(&key, namespace);
 
         if let Some((value, version)) =
             self.try_get_raw(&storage_key, &self.ldk_data_encryption_key).await?
@@ -478,33 +476,30 @@ impl VssClient {
     pub async fn delete_ldk(
         &self,
         key: String,
-        primary_namespace: String,
-        secondary_namespace: String,
+        namespace: &LdkNamespace,
     ) -> Result<bool, VssError> {
-        let storage_key = self.build_key_ldk(&key, &primary_namespace, &secondary_namespace);
+        let storage_key = self.build_key_ldk(&key, namespace);
         self.delete_by_storage_key(&storage_key).await
     }
 
     /// Lists keys and versions using ldk-node's namespaced key format.
     pub async fn list_keys_ldk(
         &self,
-        primary_namespace: String,
-        secondary_namespace: String,
+        namespace: &LdkNamespace,
     ) -> Result<Vec<KeyVersion>, VssError> {
-        let prefix = Some(self.build_key_ldk("", &primary_namespace, &secondary_namespace));
+        let prefix = Some(self.build_key_ldk("", namespace));
         self.list_key_versions(prefix, &self.ldk_key_obfuscator).await
     }
 
     /// Lists all items using ldk-node's namespaced key format.
     pub async fn list_ldk(
         &self,
-        primary_namespace: String,
-        secondary_namespace: String,
+        namespace: &LdkNamespace,
     ) -> Result<Vec<VssItem>, VssError> {
-        let keys = self.list_keys_ldk(primary_namespace.clone(), secondary_namespace.clone()).await?;
+        let keys = self.list_keys_ldk(namespace).await?;
         let mut items = Vec::new();
         for kv in keys {
-            if let Ok(Some(item)) = self.get_ldk(kv.key, primary_namespace.clone(), secondary_namespace.clone()).await {
+            if let Ok(Some(item)) = self.get_ldk(kv.key, namespace).await {
                 items.push(item);
             }
         }
@@ -569,11 +564,10 @@ impl VssClient {
     pub(crate) fn build_key_ldk(
         &self,
         key: &str,
-        primary_namespace: &str,
-        secondary_namespace: &str,
+        namespace: &LdkNamespace,
     ) -> String {
         if let Some(ref obfuscator) = self.ldk_key_obfuscator {
-            Self::obfuscate_key(obfuscator, key, Some(primary_namespace), Some(secondary_namespace))
+            Self::obfuscate_key(obfuscator, key, Some(namespace.primary()), Some(namespace.secondary()))
         } else {
             key.to_string()
         }

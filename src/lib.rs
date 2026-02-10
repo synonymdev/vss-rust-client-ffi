@@ -337,12 +337,11 @@ pub async fn vss_delete(
 pub async fn vss_store_ldk(
     key: String,
     value: Vec<u8>,
-    primary_namespace: String,
-    secondary_namespace: String,
+    namespace: LdkNamespace,
 ) -> Result<VssItem, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.store_ldk(key, value, primary_namespace, secondary_namespace).await
+        client.store_ldk(key, value, &namespace).await
     })
 }
 
@@ -350,12 +349,11 @@ pub async fn vss_store_ldk(
 #[uniffi::export]
 pub async fn vss_get_ldk(
     key: String,
-    primary_namespace: String,
-    secondary_namespace: String,
+    namespace: LdkNamespace,
 ) -> Result<Option<VssItem>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.get_ldk(key, primary_namespace, secondary_namespace).await
+        client.get_ldk(key, &namespace).await
     })
 }
 
@@ -363,36 +361,33 @@ pub async fn vss_get_ldk(
 #[uniffi::export]
 pub async fn vss_delete_ldk(
     key: String,
-    primary_namespace: String,
-    secondary_namespace: String,
+    namespace: LdkNamespace,
 ) -> Result<bool, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.delete_ldk(key, primary_namespace, secondary_namespace).await
+        client.delete_ldk(key, &namespace).await
     })
 }
 
 /// Lists keys and versions using ldk-node's namespaced key format.
 #[uniffi::export]
 pub async fn vss_list_keys_ldk(
-    primary_namespace: String,
-    secondary_namespace: String,
+    namespace: LdkNamespace,
 ) -> Result<Vec<KeyVersion>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.list_keys_ldk(primary_namespace, secondary_namespace).await
+        client.list_keys_ldk(&namespace).await
     })
 }
 
 /// Lists all items using ldk-node's namespaced key format.
 #[uniffi::export]
 pub async fn vss_list_ldk(
-    primary_namespace: String,
-    secondary_namespace: String,
+    namespace: LdkNamespace,
 ) -> Result<Vec<VssItem>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.list_ldk(primary_namespace, secondary_namespace).await
+        client.list_ldk(&namespace).await
     })
 }
 
