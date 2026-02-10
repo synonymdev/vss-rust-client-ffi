@@ -6,7 +6,7 @@ use bitcoin::secp256k1::Secp256k1;
 use bitcoin::Network;
 use prost::Message;
 use rand::RngCore;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 use vss_client_ng::client::VssClient as ExternalVssClient;
 use vss_client_ng::error::VssError as ExternalVssError;
@@ -28,11 +28,6 @@ const VSS_HARDENED_CHILD_INDEX: u32 = 877;
 const VSS_LNURL_AUTH_HARDENED_CHILD_INDEX: u32 = 138;
 const VSS_STORE_ID_HARDENED_CHILD_INDEX: u32 = 118;
 const VSS_STORE_ID_HASH_LENGTH: usize = 36;
-
-/// Mirrors `NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE` from rust-lightning `persist.rs:78`.
-const NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE: &str = "";
-/// Mirrors `NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE` from rust-lightning `persist.rs:82`.
-const NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE: &str = "";
 
 /// Derives a deterministic VSS store ID from a mnemonic and optional passphrase.
 ///
@@ -114,10 +109,10 @@ pub struct VssClient {
     inner: Arc<ExternalVssClient<CustomRetryPolicy>>,
     store_id: String,
     storable_builder: Arc<StorableBuilder<RandEntropySource>>,
-    pub(crate) data_encryption_key: [u8; 32],
-    key_obfuscator: Option<Arc<KeyObfuscator>>,
-    pub(crate) legacy_data_encryption_key: Option<[u8; 32]>,
-    pub(crate) legacy_key_obfuscator: Option<Arc<KeyObfuscator>>,
+    pub(crate) app_data_encryption_key: [u8; 32],
+    pub(crate) app_key_obfuscator: Option<Arc<KeyObfuscator>>,
+    pub(crate) ldk_data_encryption_key: [u8; 32],
+    pub(crate) ldk_key_obfuscator: Option<Arc<KeyObfuscator>>,
 }
 
 impl VssClient {
@@ -137,6 +132,9 @@ impl VssClient {
 
     /// Creates a new VSS client instance with LNURL-auth.
     ///
+    /// Uses the truncated 32-byte seed for app backup keys (backward compatible)
+    /// and the full 64-byte seed for LDK backup keys (matching ldk-node).
+    ///
     /// # Parameters
     /// - `base_url`: The VSS server URL
     /// - `store_id`: The storage namespace identifier
@@ -152,12 +150,14 @@ impl VssClient {
         lnurl_auth_server_url: String,
     ) -> Result<Self, VssError> {
         let secp = Secp256k1::new();
-        let master_xprv =
+
+        // Derive LDK keys from full 64-byte seed (matching ldk-node's key derivation)
+        let ldk_master_xprv =
             Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| VssError::ConnectionError {
                 error_details: format!("Failed to create master key: {}", e),
             })?;
 
-        let vss_xprv = master_xprv
+        let ldk_vss_xprv = ldk_master_xprv
             .derive_priv(
                 &secp,
                 &[ChildNumber::Hardened {
@@ -168,7 +168,8 @@ impl VssClient {
                 error_details: format!("Failed to derive VSS key: {}", e),
             })?;
 
-        let lnurl_auth_xprv = vss_xprv
+        // LNURL auth uses the full seed derivation path
+        let lnurl_auth_xprv = ldk_vss_xprv
             .derive_priv(
                 &secp,
                 &[ChildNumber::Hardened {
@@ -187,17 +188,17 @@ impl VssClient {
 
         let header_provider = Arc::new(lnurl_auth_jwt_provider);
 
-        let vss_seed_bytes: [u8; 32] = vss_xprv.private_key.secret_bytes();
+        let ldk_vss_seed_bytes: [u8; 32] = ldk_vss_xprv.private_key.secret_bytes();
 
-        // Derive legacy keys from the truncated 32-byte seed (pre-fix behavior)
+        // Derive app keys from truncated 32-byte seed (backward compatible with old app version)
         let truncated_seed: [u8; 32] = seed[..32].try_into().unwrap();
-        let legacy_master_xprv =
+        let app_master_xprv =
             Xpriv::new_master(Network::Bitcoin, &truncated_seed).map_err(|e| {
                 VssError::ConnectionError {
-                    error_details: format!("Failed to create legacy master key: {}", e),
+                    error_details: format!("Failed to create app master key: {}", e),
                 }
             })?;
-        let legacy_vss_xprv = legacy_master_xprv
+        let app_vss_xprv = app_master_xprv
             .derive_priv(
                 &secp,
                 &[ChildNumber::Hardened {
@@ -205,16 +206,16 @@ impl VssClient {
                 }],
             )
             .map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to derive legacy VSS key: {}", e),
+                error_details: format!("Failed to derive app VSS key: {}", e),
             })?;
-        let legacy_vss_seed_bytes: [u8; 32] = legacy_vss_xprv.private_key.secret_bytes();
+        let app_vss_seed_bytes: [u8; 32] = app_vss_xprv.private_key.secret_bytes();
 
         Self::new_with_header_provider(
             base_url,
             store_id,
             header_provider,
-            Some(vss_seed_bytes),
-            Some(legacy_vss_seed_bytes),
+            Some(app_vss_seed_bytes),
+            Some(ldk_vss_seed_bytes),
         )
         .await
     }
@@ -224,8 +225,8 @@ impl VssClient {
         base_url: String,
         store_id: String,
         header_provider: Arc<dyn VssHeaderProvider>,
-        vss_seed: Option<[u8; 32]>,
-        legacy_vss_seed: Option<[u8; 32]>,
+        app_vss_seed: Option<[u8; 32]>,
+        ldk_vss_seed: Option<[u8; 32]>,
     ) -> Result<Self, VssError> {
         let retry_policy = ExponentialBackoffRetryPolicy::new(std::time::Duration::from_millis(10))
             .with_max_attempts(10)
@@ -244,40 +245,30 @@ impl VssClient {
 
         let storable_builder = Arc::new(StorableBuilder::new(RandEntropySource));
 
-        let (data_encryption_key, key_obfuscator) = if let Some(seed) = vss_seed {
+        let (app_data_encryption_key, app_key_obfuscator) = if let Some(seed) = app_vss_seed {
             let (dek, obfuscation_master_key) =
                 derive_data_encryption_and_obfuscation_keys(&seed);
-            let obfuscator = Some(Arc::new(KeyObfuscator::new(obfuscation_master_key)));
-            (dek, obfuscator)
+            (dek, Some(Arc::new(KeyObfuscator::new(obfuscation_master_key))))
         } else {
-            let zero_key = [0u8; 32];
-            (zero_key, None)
+            ([0u8; 32], None)
         };
 
-        let (legacy_data_encryption_key, legacy_key_obfuscator) =
-            if let Some(legacy_seed) = legacy_vss_seed {
-                let (legacy_dek, legacy_obf_key) =
-                    derive_data_encryption_and_obfuscation_keys(&legacy_seed);
-                if legacy_dek == data_encryption_key {
-                    (None, None)
-                } else {
-                    (
-                        Some(legacy_dek),
-                        Some(Arc::new(KeyObfuscator::new(legacy_obf_key))),
-                    )
-                }
-            } else {
-                (None, None)
-            };
+        let (ldk_data_encryption_key, ldk_key_obfuscator) = if let Some(seed) = ldk_vss_seed {
+            let (dek, obfuscation_master_key) =
+                derive_data_encryption_and_obfuscation_keys(&seed);
+            (dek, Some(Arc::new(KeyObfuscator::new(obfuscation_master_key))))
+        } else {
+            ([0u8; 32], None)
+        };
 
         Ok(VssClient {
             inner: Arc::new(client),
             store_id,
             storable_builder,
-            data_encryption_key,
-            key_obfuscator,
-            legacy_data_encryption_key,
-            legacy_key_obfuscator,
+            app_data_encryption_key,
+            app_key_obfuscator,
+            ldk_data_encryption_key,
+            ldk_key_obfuscator,
         })
     }
 
@@ -291,14 +282,13 @@ impl VssClient {
     /// VssItem with the stored data and assigned version
     pub async fn store(&self, key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
         let version = -1;
-        let storage_key = self.build_key(&key, None, None);
+        let storage_key = self.build_key(&key);
         let storable = self.storable_builder.build(
             value.clone(),
             version,
-            &self.data_encryption_key,
+            &self.app_data_encryption_key,
             storage_key.as_bytes(),
         );
-        let delete_items = self.legacy_delete_items(&[&key], None, None);
 
         let request = PutObjectRequest {
             store_id: self.store_id.clone(),
@@ -308,7 +298,7 @@ impl VssClient {
                 version,
                 value: storable.encode_to_vec(),
             }],
-            delete_items,
+            delete_items: vec![],
         };
 
         match self.inner.put_object(&request).await {
@@ -329,26 +319,12 @@ impl VssClient {
     /// # Returns
     /// Some(VssItem) if found, None if key doesn't exist
     pub async fn get(&self, key: String) -> Result<Option<VssItem>, VssError> {
-        let storage_key = self.build_key(&key, None, None);
+        let storage_key = self.build_key(&key);
 
         if let Some((value, version)) =
-            self.try_get_raw(&storage_key, &self.data_encryption_key).await?
+            self.try_get_raw(&storage_key, &self.app_data_encryption_key).await?
         {
             return Ok(Some(VssItem { key, value, version }));
-        }
-
-        // Fall back to legacy keys for migration
-        let (legacy_dek, legacy_obf) = match (&self.legacy_data_encryption_key, &self.legacy_key_obfuscator) {
-            (Some(dek), Some(obf)) => (dek, obf),
-            _ => return Ok(None),
-        };
-
-        let legacy_storage_key = Self::obfuscate_key(legacy_obf, &key, None, None);
-        if let Some((value, _)) = self.try_get_raw(&legacy_storage_key, legacy_dek).await? {
-            let _ = self
-                .put_migrated(&storage_key, value.clone(), Some(&legacy_storage_key))
-                .await;
-            return Ok(Some(VssItem { key, value, version: -1 }));
         }
 
         Ok(None)
@@ -380,16 +356,8 @@ impl VssClient {
     /// # Returns
     /// Vector of KeyVersion structs (more efficient than list())
     pub async fn list_keys(&self, prefix: Option<String>) -> Result<Vec<KeyVersion>, VssError> {
-        let new_prefix = prefix.as_ref().map(|p| self.build_key(p, None, None));
-        let legacy_prefix = match (&prefix, &self.legacy_key_obfuscator) {
-            (Some(p), Some(obf)) => Some(Self::obfuscate_key(obf, p, None, None)),
-            (None, Some(_)) => None, // No prefix: single call gets all keys
-            _ => None,
-        };
-        // When prefix=None and legacy exists, a single call returns all keys
-        // (both new and legacy); extract_key handles dual deobfuscation.
-        // When prefix=Some, we need two calls since obfuscated prefixes differ.
-        self.list_key_versions_merged(new_prefix, legacy_prefix).await
+        let storage_prefix = prefix.as_ref().map(|p| self.build_key(p));
+        self.list_key_versions(storage_prefix, &self.app_key_obfuscator).await
     }
 
     /// Stores multiple key-value pairs in an atomic transaction.
@@ -404,17 +372,15 @@ impl VssClient {
         items: Vec<KeyValue>,
     ) -> Result<Vec<VssItem>, VssError> {
         let version = -1;
-        let key_refs: Vec<&str> = items.iter().map(|item| item.key.as_str()).collect();
-        let delete_items = self.legacy_delete_items(&key_refs, None, None);
 
         let external_items: Vec<ExternalKeyValue> = items
             .iter()
             .map(|item| {
-                let storage_key = self.build_key(&item.key, None, None);
+                let storage_key = self.build_key(&item.key);
                 let storable = self.storable_builder.build(
                     item.value.clone(),
                     version,
-                    &self.data_encryption_key,
+                    &self.app_data_encryption_key,
                     storage_key.as_bytes(),
                 );
                 ExternalKeyValue {
@@ -429,7 +395,7 @@ impl VssClient {
             store_id: self.store_id.clone(),
             global_version: None,
             transaction_items: external_items,
-            delete_items,
+            delete_items: vec![],
         };
 
         match self.inner.put_object(&request).await {
@@ -453,31 +419,26 @@ impl VssClient {
     /// # Returns
     /// true if deleted, false if key didn't exist
     pub async fn delete(&self, key: String) -> Result<bool, VssError> {
-        let new_storage_key = self.build_key(&key, None, None);
-        let new_deleted = self.delete_by_storage_key(&new_storage_key).await?;
-
-        let legacy_deleted = if let Some(legacy_key) = self.build_legacy_key(&key, None, None) {
-            self.delete_by_storage_key(&legacy_key).await.unwrap_or(false)
-        } else {
-            false
-        };
-
-        Ok(new_deleted || legacy_deleted)
+        let storage_key = self.build_key(&key);
+        self.delete_by_storage_key(&storage_key).await
     }
 
     /// Stores a key-value pair using ldk-node's namespaced key format.
-    pub async fn store_ldk(&self, key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
+    pub async fn store_ldk(
+        &self,
+        key: String,
+        value: Vec<u8>,
+        primary_namespace: String,
+        secondary_namespace: String,
+    ) -> Result<VssItem, VssError> {
         let version = -1;
-        let ns1 = Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE);
-        let ns2 = Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE);
-        let storage_key = self.build_key(&key, ns1, ns2);
+        let storage_key = self.build_key_ldk(&key, &primary_namespace, &secondary_namespace);
         let storable = self.storable_builder.build(
             value.clone(),
             version,
-            &self.data_encryption_key,
+            &self.ldk_data_encryption_key,
             storage_key.as_bytes(),
         );
-        let delete_items = self.legacy_delete_items(&[&key], ns1, ns2);
 
         let request = PutObjectRequest {
             store_id: self.store_id.clone(),
@@ -487,7 +448,7 @@ impl VssClient {
                 version,
                 value: storable.encode_to_vec(),
             }],
-            delete_items,
+            delete_items: vec![],
         };
         match self.inner.put_object(&request).await {
             Ok(_) => Ok(VssItem { key, value, version: -1 }),
@@ -496,66 +457,54 @@ impl VssClient {
     }
 
     /// Retrieves a value by key using ldk-node's namespaced key format.
-    pub async fn get_ldk(&self, key: String) -> Result<Option<VssItem>, VssError> {
-        let ns1 = Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE);
-        let ns2 = Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE);
-        let storage_key = self.build_key(&key, ns1, ns2);
+    pub async fn get_ldk(
+        &self,
+        key: String,
+        primary_namespace: String,
+        secondary_namespace: String,
+    ) -> Result<Option<VssItem>, VssError> {
+        let storage_key = self.build_key_ldk(&key, &primary_namespace, &secondary_namespace);
 
         if let Some((value, version)) =
-            self.try_get_raw(&storage_key, &self.data_encryption_key).await?
+            self.try_get_raw(&storage_key, &self.ldk_data_encryption_key).await?
         {
             return Ok(Some(VssItem { key, value, version }));
-        }
-
-        // Fall back to legacy keys for migration
-        let (legacy_dek, legacy_obf) = match (&self.legacy_data_encryption_key, &self.legacy_key_obfuscator) {
-            (Some(dek), Some(obf)) => (dek, obf),
-            _ => return Ok(None),
-        };
-
-        let legacy_storage_key = Self::obfuscate_key(legacy_obf, &key, ns1, ns2);
-        if let Some((value, _)) = self.try_get_raw(&legacy_storage_key, legacy_dek).await? {
-            let _ = self
-                .put_migrated(&storage_key, value.clone(), Some(&legacy_storage_key))
-                .await;
-            return Ok(Some(VssItem { key, value, version: -1 }));
         }
 
         Ok(None)
     }
 
     /// Deletes a key-value pair using ldk-node's namespaced key format.
-    pub async fn delete_ldk(&self, key: String) -> Result<bool, VssError> {
-        let ns1 = Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE);
-        let ns2 = Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE);
-        let new_storage_key = self.build_key(&key, ns1, ns2);
-        let new_deleted = self.delete_by_storage_key(&new_storage_key).await?;
-
-        let legacy_deleted = if let Some(legacy_key) = self.build_legacy_key(&key, ns1, ns2) {
-            self.delete_by_storage_key(&legacy_key).await.unwrap_or(false)
-        } else {
-            false
-        };
-
-        Ok(new_deleted || legacy_deleted)
+    pub async fn delete_ldk(
+        &self,
+        key: String,
+        primary_namespace: String,
+        secondary_namespace: String,
+    ) -> Result<bool, VssError> {
+        let storage_key = self.build_key_ldk(&key, &primary_namespace, &secondary_namespace);
+        self.delete_by_storage_key(&storage_key).await
     }
 
     /// Lists keys and versions using ldk-node's namespaced key format.
-    pub async fn list_keys_ldk(&self) -> Result<Vec<KeyVersion>, VssError> {
-        let ns1 = Some(NETWORK_GRAPH_PERSISTENCE_PRIMARY_NAMESPACE);
-        let ns2 = Some(NETWORK_GRAPH_PERSISTENCE_SECONDARY_NAMESPACE);
-        let new_prefix = Some(self.build_key("", ns1, ns2));
-        let legacy_prefix = self.build_legacy_key("", ns1, ns2);
-
-        self.list_key_versions_merged(new_prefix, legacy_prefix).await
+    pub async fn list_keys_ldk(
+        &self,
+        primary_namespace: String,
+        secondary_namespace: String,
+    ) -> Result<Vec<KeyVersion>, VssError> {
+        let prefix = Some(self.build_key_ldk("", &primary_namespace, &secondary_namespace));
+        self.list_key_versions(prefix, &self.ldk_key_obfuscator).await
     }
 
     /// Lists all items using ldk-node's namespaced key format.
-    pub async fn list_ldk(&self) -> Result<Vec<VssItem>, VssError> {
-        let keys = self.list_keys_ldk().await?;
+    pub async fn list_ldk(
+        &self,
+        primary_namespace: String,
+        secondary_namespace: String,
+    ) -> Result<Vec<VssItem>, VssError> {
+        let keys = self.list_keys_ldk(primary_namespace.clone(), secondary_namespace.clone()).await?;
         let mut items = Vec::new();
         for kv in keys {
-            if let Ok(Some(item)) = self.get_ldk(kv.key).await {
+            if let Ok(Some(item)) = self.get_ldk(kv.key, primary_namespace.clone(), secondary_namespace.clone()).await {
                 items.push(item);
             }
         }
@@ -592,44 +541,55 @@ impl VssClient {
         obfuscator.deobfuscate(storage_key).ok()
     }
 
-    /// Converts a user key to storage key (obfuscated if encryption is enabled).
-    pub(crate) fn build_key(&self, key: &str, ns1: Option<&str>, ns2: Option<&str>) -> String {
-        if let Some(ref obfuscator) = self.key_obfuscator {
-            Self::obfuscate_key(obfuscator, key, ns1, ns2)
+    /// Deobfuscates a storage key using the given obfuscator.
+    fn deobfuscate_key(
+        key_obfuscator: &Option<Arc<KeyObfuscator>>,
+        storage_key: &str,
+    ) -> Result<String, VssError> {
+        if let Some(ref obfuscator) = key_obfuscator {
+            Self::try_deobfuscate(obfuscator, storage_key)
+                .ok_or_else(|| VssError::ListError {
+                    error_details: "Failed to deobfuscate key".to_string(),
+                })
+        } else {
+            Ok(storage_key.to_string())
+        }
+    }
+
+    /// Converts a user key to storage key using the app obfuscator.
+    pub(crate) fn build_key(&self, key: &str) -> String {
+        if let Some(ref obfuscator) = self.app_key_obfuscator {
+            obfuscator.obfuscate(key)
         } else {
             key.to_string()
         }
     }
 
-    /// Builds a storage key using the legacy obfuscator (for migration reads).
-    pub(crate) fn build_legacy_key(&self, key: &str, ns1: Option<&str>, ns2: Option<&str>) -> Option<String> {
-        self.legacy_key_obfuscator
-            .as_ref()
-            .map(|obf| Self::obfuscate_key(obf, key, ns1, ns2))
+    /// Converts a user key to storage key using the ldk obfuscator with namespaces.
+    pub(crate) fn build_key_ldk(
+        &self,
+        key: &str,
+        primary_namespace: &str,
+        secondary_namespace: &str,
+    ) -> String {
+        if let Some(ref obfuscator) = self.ldk_key_obfuscator {
+            Self::obfuscate_key(obfuscator, key, Some(primary_namespace), Some(secondary_namespace))
+        } else {
+            key.to_string()
+        }
     }
 
-    /// Converts a storage key back to user key (deobfuscated).
-    /// Tries new obfuscator first, then legacy obfuscator.
+    /// Converts a storage key back to user key using the app obfuscator.
     pub(crate) fn extract_key(&self, storage_key: &str) -> Result<String, VssError> {
-        if let Some(ref obfuscator) = self.key_obfuscator {
-            if let Some(key) = Self::try_deobfuscate(obfuscator, storage_key) {
-                return Ok(key);
-            }
-        }
-        if let Some(ref legacy_obfuscator) = self.legacy_key_obfuscator {
-            if let Some(key) = Self::try_deobfuscate(legacy_obfuscator, storage_key) {
-                return Ok(key);
-            }
-        }
-        if self.key_obfuscator.is_none() && self.legacy_key_obfuscator.is_none() {
-            return Ok(storage_key.to_string());
-        }
-        Err(VssError::ListError {
-            error_details: "Failed to deobfuscate key".to_string(),
-        })
+        Self::deobfuscate_key(&self.app_key_obfuscator, storage_key)
     }
 
-    // --- Low-level helpers for migration ---
+    /// Converts a storage key back to user key using the ldk obfuscator.
+    pub(crate) fn extract_key_ldk(&self, storage_key: &str) -> Result<String, VssError> {
+        Self::deobfuscate_key(&self.ldk_key_obfuscator, storage_key)
+    }
+
+    // --- Low-level helpers ---
 
     /// Gets and decrypts a value using explicit storage key and encryption key.
     async fn try_get_raw(
@@ -664,46 +624,6 @@ impl VssClient {
         }
     }
 
-    /// Stores a value with new keys and atomically deletes the legacy key.
-    async fn put_migrated(
-        &self,
-        new_storage_key: &str,
-        value: Vec<u8>,
-        legacy_storage_key: Option<&str>,
-    ) -> Result<(), VssError> {
-        let storable = self.storable_builder.build(
-            value,
-            -1,
-            &self.data_encryption_key,
-            new_storage_key.as_bytes(),
-        );
-        let delete_items = legacy_storage_key
-            .map(|key| {
-                vec![ExternalKeyValue {
-                    key: key.to_string(),
-                    version: -1,
-                    value: vec![],
-                }]
-            })
-            .unwrap_or_default();
-
-        let request = PutObjectRequest {
-            store_id: self.store_id.clone(),
-            global_version: None,
-            transaction_items: vec![ExternalKeyValue {
-                key: new_storage_key.to_string(),
-                version: -1,
-                value: storable.encode_to_vec(),
-            }],
-            delete_items,
-        };
-        self.inner
-            .put_object(&request)
-            .await
-            .map(|_| ())
-            .map_err(|e| convert_error(e, "put_migrated"))
-    }
-
     /// Deletes a value by raw storage key.
     async fn delete_by_storage_key(&self, storage_key: &str) -> Result<bool, VssError> {
         let request = DeleteObjectRequest {
@@ -721,64 +641,32 @@ impl VssClient {
         }
     }
 
-    /// Collects legacy delete items for a set of keys (for batch operations).
-    fn legacy_delete_items(&self, keys: &[&str], ns1: Option<&str>, ns2: Option<&str>) -> Vec<ExternalKeyValue> {
-        keys.iter()
-            .filter_map(|key| {
-                self.build_legacy_key(key, ns1, ns2).map(|legacy_key| ExternalKeyValue {
-                    key: legacy_key,
-                    version: -1,
-                    value: vec![],
-                })
-            })
-            .collect()
-    }
-
-    /// Lists key versions, merging results from new and legacy prefixes.
-    async fn list_key_versions_merged(
+    /// Lists key versions for a single prefix using the given obfuscator.
+    async fn list_key_versions(
         &self,
-        new_prefix: Option<String>,
-        legacy_prefix: Option<String>,
+        prefix: Option<String>,
+        key_obfuscator: &Option<Arc<KeyObfuscator>>,
     ) -> Result<Vec<KeyVersion>, VssError> {
         let request = ListKeyVersionsRequest {
             store_id: self.store_id.clone(),
-            key_prefix: new_prefix,
+            key_prefix: prefix,
             page_size: None,
             page_token: None,
         };
-        let new_results = self
+        let results = self
             .inner
             .list_key_versions(&request)
             .await
-            .map_err(|e| convert_error(e, "list_key_versions_merged"))?
+            .map_err(|e| convert_error(e, "list_key_versions"))?
             .key_versions;
 
-        let legacy_results = if let Some(legacy_pfx) = legacy_prefix {
-            let legacy_request = ListKeyVersionsRequest {
-                store_id: self.store_id.clone(),
-                key_prefix: Some(legacy_pfx),
-                page_size: None,
-                page_token: None,
-            };
-            self.inner
-                .list_key_versions(&legacy_request)
-                .await
-                .map(|r| r.key_versions)
-                .unwrap_or_default()
-        } else {
-            vec![]
-        };
-
-        let mut seen = HashSet::new();
         let mut result = Vec::new();
-        for kv in new_results.into_iter().chain(legacy_results.into_iter()) {
-            if let Ok(original_key) = self.extract_key(&kv.key) {
-                if seen.insert(original_key.clone()) {
-                    result.push(KeyVersion {
-                        key: original_key,
-                        version: kv.version,
-                    });
-                }
+        for kv in results {
+            if let Ok(original_key) = Self::deobfuscate_key(key_obfuscator, &kv.key) {
+                result.push(KeyVersion {
+                    key: original_key,
+                    version: kv.version,
+                });
             }
         }
         Ok(result)

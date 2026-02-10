@@ -334,46 +334,65 @@ pub async fn vss_delete(
 
 /// Stores a key-value pair using ldk-node's namespaced key format.
 #[uniffi::export]
-pub async fn vss_store_ldk(key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
+pub async fn vss_store_ldk(
+    key: String,
+    value: Vec<u8>,
+    primary_namespace: String,
+    secondary_namespace: String,
+) -> Result<VssItem, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.store_ldk(key, value).await
+        client.store_ldk(key, value, primary_namespace, secondary_namespace).await
     })
 }
 
 /// Retrieves a value by key using ldk-node's namespaced key format.
 #[uniffi::export]
-pub async fn vss_get_ldk(key: String) -> Result<Option<VssItem>, VssError> {
+pub async fn vss_get_ldk(
+    key: String,
+    primary_namespace: String,
+    secondary_namespace: String,
+) -> Result<Option<VssItem>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.get_ldk(key).await
+        client.get_ldk(key, primary_namespace, secondary_namespace).await
     })
 }
 
 /// Deletes a key-value pair using ldk-node's namespaced key format.
 #[uniffi::export]
-pub async fn vss_delete_ldk(key: String) -> Result<bool, VssError> {
+pub async fn vss_delete_ldk(
+    key: String,
+    primary_namespace: String,
+    secondary_namespace: String,
+) -> Result<bool, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.delete_ldk(key).await
+        client.delete_ldk(key, primary_namespace, secondary_namespace).await
     })
 }
 
 /// Lists keys and versions using ldk-node's namespaced key format.
 #[uniffi::export]
-pub async fn vss_list_keys_ldk() -> Result<Vec<KeyVersion>, VssError> {
+pub async fn vss_list_keys_ldk(
+    primary_namespace: String,
+    secondary_namespace: String,
+) -> Result<Vec<KeyVersion>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.list_keys_ldk().await
+        client.list_keys_ldk(primary_namespace, secondary_namespace).await
     })
 }
 
 /// Lists all items using ldk-node's namespaced key format.
 #[uniffi::export]
-pub async fn vss_list_ldk() -> Result<Vec<VssItem>, VssError> {
+pub async fn vss_list_ldk(
+    primary_namespace: String,
+    secondary_namespace: String,
+) -> Result<Vec<VssItem>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
-        client.list_ldk().await
+        client.list_ldk(primary_namespace, secondary_namespace).await
     })
 }
 

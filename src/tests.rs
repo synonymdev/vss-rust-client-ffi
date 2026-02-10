@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_legacy_key_derivation_differs_from_new() {
+    async fn test_key_derivation_app_differs_from_ldk() {
         use bitcoin::bip32::{ChildNumber, Xpriv};
         use bitcoin::secp256k1::Secp256k1;
         use bitcoin::Network;
@@ -110,29 +110,31 @@ mod tests {
 
         let secp = Secp256k1::new();
 
-        let new_master = Xpriv::new_master(Network::Bitcoin, &full_seed).unwrap();
-        let new_vss = new_master
+        // LDK keys: derived from full 64-byte seed
+        let ldk_master = Xpriv::new_master(Network::Bitcoin, &full_seed).unwrap();
+        let ldk_vss = ldk_master
             .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
             .unwrap();
-        let new_seed_bytes: [u8; 32] = new_vss.private_key.secret_bytes();
+        let ldk_seed_bytes: [u8; 32] = ldk_vss.private_key.secret_bytes();
 
-        let old_master = Xpriv::new_master(Network::Bitcoin, &truncated_seed).unwrap();
-        let old_vss = old_master
+        // App keys: derived from truncated 32-byte seed
+        let app_master = Xpriv::new_master(Network::Bitcoin, &truncated_seed).unwrap();
+        let app_vss = app_master
             .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
             .unwrap();
-        let old_seed_bytes: [u8; 32] = old_vss.private_key.secret_bytes();
+        let app_seed_bytes: [u8; 32] = app_vss.private_key.secret_bytes();
 
-        assert_ne!(new_seed_bytes, old_seed_bytes);
+        assert_ne!(ldk_seed_bytes, app_seed_bytes);
 
-        let (new_enc, new_obf) = derive_data_encryption_and_obfuscation_keys(&new_seed_bytes);
-        let (old_enc, old_obf) = derive_data_encryption_and_obfuscation_keys(&old_seed_bytes);
+        let (ldk_enc, ldk_obf) = derive_data_encryption_and_obfuscation_keys(&ldk_seed_bytes);
+        let (app_enc, app_obf) = derive_data_encryption_and_obfuscation_keys(&app_seed_bytes);
 
-        assert_ne!(new_enc, old_enc);
-        assert_ne!(new_obf, old_obf);
+        assert_ne!(ldk_enc, app_enc);
+        assert_ne!(ldk_obf, app_obf);
     }
 
     #[tokio::test]
-    async fn test_client_with_lnurl_auth_has_legacy_keys() {
+    async fn test_client_with_lnurl_auth_has_separate_keys() {
         let seed = [42u8; 64];
         let client = VssClient::new_with_lnurl_auth(
             MOCK_BASE_URL.to_string(),
@@ -143,16 +145,16 @@ mod tests {
         .await
         .unwrap();
 
-        assert!(client.legacy_data_encryption_key.is_some());
-        assert!(client.legacy_key_obfuscator.is_some());
+        assert!(client.app_key_obfuscator.is_some());
+        assert!(client.ldk_key_obfuscator.is_some());
         assert_ne!(
-            client.data_encryption_key,
-            client.legacy_data_encryption_key.unwrap()
+            client.app_data_encryption_key,
+            client.ldk_data_encryption_key
         );
     }
 
     #[tokio::test]
-    async fn test_client_without_auth_has_no_legacy_keys() {
+    async fn test_client_without_auth_has_no_keys() {
         let client = VssClient::new(
             MOCK_BASE_URL.to_string(),
             TEST_STORE_ID.to_string(),
@@ -160,12 +162,12 @@ mod tests {
         .await
         .unwrap();
 
-        assert!(client.legacy_data_encryption_key.is_none());
-        assert!(client.legacy_key_obfuscator.is_none());
+        assert!(client.app_key_obfuscator.is_none());
+        assert!(client.ldk_key_obfuscator.is_none());
     }
 
     #[tokio::test]
-    async fn test_extract_key_with_both_obfuscators() {
+    async fn test_build_and_extract_app_key() {
         let seed = [42u8; 64];
         let client = VssClient::new_with_lnurl_auth(
             MOCK_BASE_URL.to_string(),
@@ -176,18 +178,17 @@ mod tests {
         .await
         .unwrap();
 
-        let new_storage_key = client.build_key("test_key", None, None);
-        let legacy_storage_key = client.build_legacy_key("test_key", None, None).unwrap();
+        let app_storage_key = client.build_key("test_key");
 
-        assert_ne!(new_storage_key, legacy_storage_key);
+        // App key should be obfuscated
+        assert_ne!(app_storage_key, "test_key");
 
-        // Both should deobfuscate to the original key
-        assert_eq!(client.extract_key(&new_storage_key).unwrap(), "test_key");
-        assert_eq!(client.extract_key(&legacy_storage_key).unwrap(), "test_key");
+        // Should deobfuscate back to original
+        assert_eq!(client.extract_key(&app_storage_key).unwrap(), "test_key");
     }
 
     #[tokio::test]
-    async fn test_extract_key_with_namespaces() {
+    async fn test_build_and_extract_ldk_key() {
         let seed = [42u8; 64];
         let client = VssClient::new_with_lnurl_auth(
             MOCK_BASE_URL.to_string(),
@@ -198,15 +199,32 @@ mod tests {
         .await
         .unwrap();
 
-        let ns1 = Some("");
-        let ns2 = Some("");
-        let new_key = client.build_key("graph", ns1, ns2);
-        let legacy_key = client.build_legacy_key("graph", ns1, ns2).unwrap();
+        let ldk_storage_key = client.build_key_ldk("graph", "", "");
 
-        assert_ne!(new_key, legacy_key);
+        // LDK key should be obfuscated with namespace prefix
+        assert_ne!(ldk_storage_key, "graph");
 
-        assert_eq!(client.extract_key(&new_key).unwrap(), "graph");
-        assert_eq!(client.extract_key(&legacy_key).unwrap(), "graph");
+        // Should deobfuscate back to original
+        assert_eq!(client.extract_key_ldk(&ldk_storage_key).unwrap(), "graph");
+    }
+
+    #[tokio::test]
+    async fn test_app_and_ldk_keys_are_different() {
+        let seed = [42u8; 64];
+        let client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let app_storage_key = client.build_key("test_key");
+        let ldk_storage_key = client.build_key_ldk("test_key", "", "");
+
+        // App and LDK storage keys must differ (different obfuscators + format)
+        assert_ne!(app_storage_key, ldk_storage_key);
     }
 
     #[test]
