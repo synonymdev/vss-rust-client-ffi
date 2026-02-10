@@ -258,7 +258,7 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_delete(RustBuffer key
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_DELETE_LDK
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_DELETE_LDK
-uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(RustBuffer key
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(RustBuffer key, RustBuffer primary_namespace, RustBuffer secondary_namespace
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_DERIVE_STORE_ID
@@ -273,7 +273,7 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get(RustBuffer key
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_GET_LDK
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_GET_LDK
-uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(RustBuffer key
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(RustBuffer key, RustBuffer primary_namespace, RustBuffer secondary_namespace
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST
@@ -288,14 +288,12 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(RustBuffer prefix
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS_LDK
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS_LDK
-uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(void
-    
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(RustBuffer primary_namespace, RustBuffer secondary_namespace
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_LDK
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_LDK
-uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(void
-    
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(RustBuffer primary_namespace, RustBuffer secondary_namespace
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_NEW_CLIENT
@@ -326,7 +324,7 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_store(RustBuffer key, RustBuffer
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_STORE_LDK
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_STORE_LDK
-uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(RustBuffer key, RustBuffer value
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(RustBuffer key, RustBuffer value, RustBuffer primary_namespace, RustBuffer secondary_namespace
 );
 #endif
 #ifndef UNIFFI_FFIDEF_FFI_VSS_RUST_CLIENT_FFI_RUSTBUFFER_ALLOC
