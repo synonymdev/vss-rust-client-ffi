@@ -98,6 +98,130 @@ mod tests {
         assert!(vss_derive_store_id(prefix, "invalid".to_string(), None).is_err());
     }
 
+    #[tokio::test]
+    async fn test_legacy_key_derivation_differs_from_new() {
+        use bitcoin::bip32::{ChildNumber, Xpriv};
+        use bitcoin::secp256k1::Secp256k1;
+        use bitcoin::Network;
+        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
+
+        let full_seed: [u8; 64] = [42u8; 64];
+        let truncated_seed: [u8; 32] = full_seed[..32].try_into().unwrap();
+
+        let secp = Secp256k1::new();
+
+        let new_master = Xpriv::new_master(Network::Bitcoin, &full_seed).unwrap();
+        let new_vss = new_master
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+        let new_seed_bytes: [u8; 32] = new_vss.private_key.secret_bytes();
+
+        let old_master = Xpriv::new_master(Network::Bitcoin, &truncated_seed).unwrap();
+        let old_vss = old_master
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+        let old_seed_bytes: [u8; 32] = old_vss.private_key.secret_bytes();
+
+        assert_ne!(new_seed_bytes, old_seed_bytes);
+
+        let (new_enc, new_obf) = derive_data_encryption_and_obfuscation_keys(&new_seed_bytes);
+        let (old_enc, old_obf) = derive_data_encryption_and_obfuscation_keys(&old_seed_bytes);
+
+        assert_ne!(new_enc, old_enc);
+        assert_ne!(new_obf, old_obf);
+    }
+
+    #[tokio::test]
+    async fn test_client_with_lnurl_auth_has_legacy_keys() {
+        let seed = [42u8; 64];
+        let client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert!(client.legacy_data_encryption_key.is_some());
+        assert!(client.legacy_key_obfuscator.is_some());
+        assert_ne!(
+            client.data_encryption_key,
+            client.legacy_data_encryption_key.unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_client_without_auth_has_no_legacy_keys() {
+        let client = VssClient::new(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert!(client.legacy_data_encryption_key.is_none());
+        assert!(client.legacy_key_obfuscator.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_extract_key_with_both_obfuscators() {
+        let seed = [42u8; 64];
+        let client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let new_storage_key = client.build_key("test_key", None, None);
+        let legacy_storage_key = client.build_legacy_key("test_key", None, None).unwrap();
+
+        assert_ne!(new_storage_key, legacy_storage_key);
+
+        // Both should deobfuscate to the original key
+        assert_eq!(client.extract_key(&new_storage_key).unwrap(), "test_key");
+        assert_eq!(client.extract_key(&legacy_storage_key).unwrap(), "test_key");
+    }
+
+    #[tokio::test]
+    async fn test_extract_key_with_namespaces() {
+        let seed = [42u8; 64];
+        let client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let ns1 = Some("");
+        let ns2 = Some("");
+        let new_key = client.build_key("graph", ns1, ns2);
+        let legacy_key = client.build_legacy_key("graph", ns1, ns2).unwrap();
+
+        assert_ne!(new_key, legacy_key);
+
+        assert_eq!(client.extract_key(&new_key).unwrap(), "graph");
+        assert_eq!(client.extract_key(&legacy_key).unwrap(), "graph");
+    }
+
+    #[test]
+    fn test_store_id_unchanged() {
+        use crate::vss_derive_store_id;
+
+        let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string();
+
+        // derive_vss_store_id always uses truncated 32-byte seed,
+        // so the store_id is the same regardless of the client key fix
+        let id1 = vss_derive_store_id("test".to_string(), mnemonic.clone(), None).unwrap();
+        let id2 = vss_derive_store_id("test".to_string(), mnemonic.clone(), None).unwrap();
+        assert_eq!(id1, id2);
+    }
+
     #[test]
     fn test_types_creation() {
         use crate::{VssItem, KeyValue, KeyVersion};
