@@ -151,46 +151,7 @@ impl VssClient {
     ) -> Result<Self, VssError> {
         let secp = Secp256k1::new();
 
-        // Derive LDK keys from full 64-byte seed (matching ldk-node's key derivation)
-        let ldk_master_xprv =
-            Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to create master key: {}", e),
-            })?;
-
-        let ldk_vss_xprv = ldk_master_xprv
-            .derive_priv(
-                &secp,
-                &[ChildNumber::Hardened {
-                    index: VSS_HARDENED_CHILD_INDEX,
-                }],
-            )
-            .map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to derive VSS key: {}", e),
-            })?;
-
-        // LNURL auth uses the full seed derivation path
-        let lnurl_auth_xprv = ldk_vss_xprv
-            .derive_priv(
-                &secp,
-                &[ChildNumber::Hardened {
-                    index: VSS_LNURL_AUTH_HARDENED_CHILD_INDEX,
-                }],
-            )
-            .map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to derive LNURL-auth key: {}", e),
-            })?;
-
-        let lnurl_auth_jwt_provider =
-            LnurlAuthToJwtProvider::new(lnurl_auth_xprv, lnurl_auth_server_url, HashMap::new())
-                .map_err(|e| VssError::ConnectionError {
-                    error_details: format!("Failed to create LNURL-auth provider: {}", e),
-                })?;
-
-        let header_provider = Arc::new(lnurl_auth_jwt_provider);
-
-        let ldk_vss_seed_bytes: [u8; 32] = ldk_vss_xprv.private_key.secret_bytes();
-
-        // Derive app keys from truncated 32-byte seed (backward compatible with old app version)
+        // Derive app keys from truncated 32-byte seed (backward compatible with v0.4.0)
         let truncated_seed: [u8; 32] = seed[..32].try_into().unwrap();
         let app_master_xprv =
             Xpriv::new_master(Network::Bitcoin, &truncated_seed).map_err(|e| {
@@ -209,6 +170,43 @@ impl VssClient {
                 error_details: format!("Failed to derive app VSS key: {}", e),
             })?;
         let app_vss_seed_bytes: [u8; 32] = app_vss_xprv.private_key.secret_bytes();
+
+        // LNURL auth from app path (matches v0.4.0 server identity)
+        let lnurl_auth_xprv = app_vss_xprv
+            .derive_priv(
+                &secp,
+                &[ChildNumber::Hardened {
+                    index: VSS_LNURL_AUTH_HARDENED_CHILD_INDEX,
+                }],
+            )
+            .map_err(|e| VssError::ConnectionError {
+                error_details: format!("Failed to derive LNURL-auth key: {}", e),
+            })?;
+
+        let lnurl_auth_jwt_provider =
+            LnurlAuthToJwtProvider::new(lnurl_auth_xprv, lnurl_auth_server_url, HashMap::new())
+                .map_err(|e| VssError::ConnectionError {
+                    error_details: format!("Failed to create LNURL-auth provider: {}", e),
+                })?;
+
+        let header_provider = Arc::new(lnurl_auth_jwt_provider);
+
+        // Derive LDK keys from full 64-byte seed (matching ldk-node's key derivation)
+        let ldk_master_xprv =
+            Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| VssError::ConnectionError {
+                error_details: format!("Failed to create LDK master key: {}", e),
+            })?;
+        let ldk_vss_xprv = ldk_master_xprv
+            .derive_priv(
+                &secp,
+                &[ChildNumber::Hardened {
+                    index: VSS_HARDENED_CHILD_INDEX,
+                }],
+            )
+            .map_err(|e| VssError::ConnectionError {
+                error_details: format!("Failed to derive LDK VSS key: {}", e),
+            })?;
+        let ldk_vss_seed_bytes: [u8; 32] = ldk_vss_xprv.private_key.secret_bytes();
 
         Self::new_with_header_provider(
             base_url,
