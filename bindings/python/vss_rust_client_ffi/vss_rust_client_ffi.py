@@ -463,21 +463,21 @@ def _uniffi_check_contract_api_version(lib):
 def _uniffi_check_api_checksums(lib):
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 13005:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 15871:
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 5483:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 17660:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 51694:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 54805:
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 7390:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 517:
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 41363:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 57286:
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 59284:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 63115:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -489,7 +489,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42494:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 9766:
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 21993:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
 
 # A ctypes library to expose the extern-C FFI definitions.
@@ -604,7 +604,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete.restype = ctypes.c_uint
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
-    _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id.argtypes = (
@@ -621,7 +620,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
-    _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list.argtypes = (
@@ -634,11 +632,9 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys.argtypes = (
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk.argtypes = (
     _UniffiRustBuffer,
-    _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk.argtypes = (
-    _UniffiRustBuffer,
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk.restype = ctypes.c_uint64
@@ -669,7 +665,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk.argtypes = (
-    _UniffiRustBuffer,
     _UniffiRustBuffer,
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -1229,6 +1224,141 @@ class _UniffiConverterTypeVssItem(_UniffiConverterRustBuffer):
         _UniffiConverterInt64.write(value.version, buf)
 
 
+
+
+
+class LdkNamespace:
+    def __init__(self):
+        raise RuntimeError("LdkNamespace cannot be instantiated directly")
+
+    # Each enum variant is a nested class of the enum itself.
+    class DEFAULT:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "LdkNamespace.DEFAULT()".format()
+
+        def __eq__(self, other):
+            if not other.is_default():
+                return False
+            return True
+    
+    class MONITORS:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "LdkNamespace.MONITORS()".format()
+
+        def __eq__(self, other):
+            if not other.is_monitors():
+                return False
+            return True
+    
+    class MONITOR_UPDATES:
+        monitor_id: "str"
+
+        def __init__(self,monitor_id: "str"):
+            self.monitor_id = monitor_id
+
+        def __str__(self):
+            return "LdkNamespace.MONITOR_UPDATES(monitor_id={})".format(self.monitor_id)
+
+        def __eq__(self, other):
+            if not other.is_monitor_updates():
+                return False
+            if self.monitor_id != other.monitor_id:
+                return False
+            return True
+    
+    class ARCHIVED_MONITORS:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "LdkNamespace.ARCHIVED_MONITORS()".format()
+
+        def __eq__(self, other):
+            if not other.is_archived_monitors():
+                return False
+            return True
+    
+    
+
+    # For each variant, we have an `is_NAME` method for easily checking
+    # whether an instance is that variant.
+    def is_default(self) -> bool:
+        return isinstance(self, LdkNamespace.DEFAULT)
+    def is_monitors(self) -> bool:
+        return isinstance(self, LdkNamespace.MONITORS)
+    def is_monitor_updates(self) -> bool:
+        return isinstance(self, LdkNamespace.MONITOR_UPDATES)
+    def is_archived_monitors(self) -> bool:
+        return isinstance(self, LdkNamespace.ARCHIVED_MONITORS)
+    
+
+# Now, a little trick - we make each nested variant class be a subclass of the main
+# enum class, so that method calls and instance checks etc will work intuitively.
+# We might be able to do this a little more neatly with a metaclass, but this'll do.
+LdkNamespace.DEFAULT = type("LdkNamespace.DEFAULT", (LdkNamespace.DEFAULT, LdkNamespace,), {})  # type: ignore
+LdkNamespace.MONITORS = type("LdkNamespace.MONITORS", (LdkNamespace.MONITORS, LdkNamespace,), {})  # type: ignore
+LdkNamespace.MONITOR_UPDATES = type("LdkNamespace.MONITOR_UPDATES", (LdkNamespace.MONITOR_UPDATES, LdkNamespace,), {})  # type: ignore
+LdkNamespace.ARCHIVED_MONITORS = type("LdkNamespace.ARCHIVED_MONITORS", (LdkNamespace.ARCHIVED_MONITORS, LdkNamespace,), {})  # type: ignore
+
+
+
+
+class _UniffiConverterTypeLdkNamespace(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        variant = buf.read_i32()
+        if variant == 1:
+            return LdkNamespace.DEFAULT(
+            )
+        if variant == 2:
+            return LdkNamespace.MONITORS(
+            )
+        if variant == 3:
+            return LdkNamespace.MONITOR_UPDATES(
+                _UniffiConverterString.read(buf),
+            )
+        if variant == 4:
+            return LdkNamespace.ARCHIVED_MONITORS(
+            )
+        raise InternalError("Raw enum value doesn't match any cases")
+
+    @staticmethod
+    def check_lower(value):
+        if value.is_default():
+            return
+        if value.is_monitors():
+            return
+        if value.is_monitor_updates():
+            _UniffiConverterString.check_lower(value.monitor_id)
+            return
+        if value.is_archived_monitors():
+            return
+        raise ValueError(value)
+
+    @staticmethod
+    def write(value, buf):
+        if value.is_default():
+            buf.write_i32(1)
+        if value.is_monitors():
+            buf.write_i32(2)
+        if value.is_monitor_updates():
+            buf.write_i32(3)
+            _UniffiConverterString.write(value.monitor_id, buf)
+        if value.is_archived_monitors():
+            buf.write_i32(4)
+
+
+
+
 # VssError
 # We want to define each variant as a nested class that's also a subclass,
 # which is tricky in Python.  To accomplish this we're going to create each
@@ -1729,7 +1859,7 @@ async def vss_delete(key: "str") -> "bool":
 _UniffiConverterTypeVssError,
 
     )
-async def vss_delete_ldk(key: "str",primary_namespace: "str",secondary_namespace: "str") -> "bool":
+async def vss_delete_ldk(key: "str",namespace: "LdkNamespace") -> "bool":
 
     """
     Deletes a key-value pair using ldk-node's namespaced key format.
@@ -1737,15 +1867,12 @@ async def vss_delete_ldk(key: "str",primary_namespace: "str",secondary_namespace
 
     _UniffiConverterString.check_lower(key)
     
-    _UniffiConverterString.check_lower(primary_namespace)
-    
-    _UniffiConverterString.check_lower(secondary_namespace)
+    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
     
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(
         _UniffiConverterString.lower(key),
-        _UniffiConverterString.lower(primary_namespace),
-        _UniffiConverterString.lower(secondary_namespace)),
+        _UniffiConverterTypeLdkNamespace.lower(namespace)),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_i8,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_i8,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_i8,
@@ -1834,7 +1961,7 @@ async def vss_get(key: "str") -> "typing.Optional[VssItem]":
 _UniffiConverterTypeVssError,
 
     )
-async def vss_get_ldk(key: "str",primary_namespace: "str",secondary_namespace: "str") -> "typing.Optional[VssItem]":
+async def vss_get_ldk(key: "str",namespace: "LdkNamespace") -> "typing.Optional[VssItem]":
 
     """
     Retrieves a value by key using ldk-node's namespaced key format.
@@ -1842,15 +1969,12 @@ async def vss_get_ldk(key: "str",primary_namespace: "str",secondary_namespace: "
 
     _UniffiConverterString.check_lower(key)
     
-    _UniffiConverterString.check_lower(primary_namespace)
-    
-    _UniffiConverterString.check_lower(secondary_namespace)
+    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
     
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(
         _UniffiConverterString.lower(key),
-        _UniffiConverterString.lower(primary_namespace),
-        _UniffiConverterString.lower(secondary_namespace)),
+        _UniffiConverterTypeLdkNamespace.lower(namespace)),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
@@ -1943,20 +2067,17 @@ async def vss_list_keys(prefix: "typing.Optional[str]") -> "typing.List[KeyVersi
 _UniffiConverterTypeVssError,
 
     )
-async def vss_list_keys_ldk(primary_namespace: "str",secondary_namespace: "str") -> "typing.List[KeyVersion]":
+async def vss_list_keys_ldk(namespace: "LdkNamespace") -> "typing.List[KeyVersion]":
 
     """
     Lists keys and versions using ldk-node's namespaced key format.
     """
 
-    _UniffiConverterString.check_lower(primary_namespace)
-    
-    _UniffiConverterString.check_lower(secondary_namespace)
+    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
     
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(
-        _UniffiConverterString.lower(primary_namespace),
-        _UniffiConverterString.lower(secondary_namespace)),
+        _UniffiConverterTypeLdkNamespace.lower(namespace)),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
@@ -1967,20 +2088,17 @@ async def vss_list_keys_ldk(primary_namespace: "str",secondary_namespace: "str")
 _UniffiConverterTypeVssError,
 
     )
-async def vss_list_ldk(primary_namespace: "str",secondary_namespace: "str") -> "typing.List[VssItem]":
+async def vss_list_ldk(namespace: "LdkNamespace") -> "typing.List[VssItem]":
 
     """
     Lists all items using ldk-node's namespaced key format.
     """
 
-    _UniffiConverterString.check_lower(primary_namespace)
-    
-    _UniffiConverterString.check_lower(secondary_namespace)
+    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
     
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(
-        _UniffiConverterString.lower(primary_namespace),
-        _UniffiConverterString.lower(secondary_namespace)),
+        _UniffiConverterTypeLdkNamespace.lower(namespace)),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
@@ -2193,7 +2311,7 @@ async def vss_store(key: "str",value: "bytes") -> "VssItem":
 _UniffiConverterTypeVssError,
 
     )
-async def vss_store_ldk(key: "str",value: "bytes",primary_namespace: "str",secondary_namespace: "str") -> "VssItem":
+async def vss_store_ldk(key: "str",value: "bytes",namespace: "LdkNamespace") -> "VssItem":
 
     """
     Stores a key-value pair using ldk-node's namespaced key format.
@@ -2203,16 +2321,13 @@ async def vss_store_ldk(key: "str",value: "bytes",primary_namespace: "str",secon
     
     _UniffiConverterBytes.check_lower(value)
     
-    _UniffiConverterString.check_lower(primary_namespace)
-    
-    _UniffiConverterString.check_lower(secondary_namespace)
+    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
     
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(
         _UniffiConverterString.lower(key),
         _UniffiConverterBytes.lower(value),
-        _UniffiConverterString.lower(primary_namespace),
-        _UniffiConverterString.lower(secondary_namespace)),
+        _UniffiConverterTypeLdkNamespace.lower(namespace)),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
@@ -2226,6 +2341,7 @@ _UniffiConverterTypeVssError,
 
 __all__ = [
     "InternalError",
+    "LdkNamespace",
     "VssError",
     "VssFilterType",
     "KeyValue",
