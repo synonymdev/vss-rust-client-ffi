@@ -80,7 +80,7 @@ vssShutdownClient()
 
 #### LDK-Specific Operations (Swift)
 
-For interacting with data stored by ldk-node's VssStore (e.g., `network_graph`, `channel_manager`, `scorer`), use the LDK variants which produce the correct namespaced key format:
+For interacting with data stored by ldk-node (e.g., `network_graph`, `channel_manager`, `scorer`), use the LDK variants which derive the matching encryption and obfuscation keys:
 
 ```swift
 // Delete an ldk-node key (e.g., stale network graph)
@@ -276,18 +276,18 @@ Delete an item. Returns `true` if item existed and was deleted.
 
 ### LDK Data Operations
 
-These methods use the ldk-node VssStore V1 namespaced key format (`obf("primary#secondary")#obf("key")`). Use them to interact with data written by ldk-node (e.g., `network_graph`, `channel_manager`, `scorer`).
+These methods derive the same encryption and obfuscation keys as ldk-node. Use them to interact with data written by ldk-node (e.g., `network_graph`, `channel_manager`, `scorer`).
 
-The standard `vssStore`/`vssGet`/`vssDelete` methods use a flat key format and **cannot** read or delete keys written by ldk-node.
+The standard `vssStore`/`vssGet`/`vssDelete` methods use different key derivation and **cannot** read or delete keys written by ldk-node.
 
 #### `vssStoreLdk(key: String, value: Data) -> VssItem`
-Store a key-value pair using ldk-node's namespaced key format.
+Store a key-value pair using ldk-node's key derivation.
 
 #### `vssGetLdk(key: String) -> VssItem?`
-Retrieve an item by key using ldk-node's namespaced key format. Returns `null` if not found.
+Retrieve an item by key using ldk-node's key derivation. Returns `null` if not found.
 
 #### `vssDeleteLdk(key: String) -> Bool`
-Delete an item using ldk-node's namespaced key format. Returns `true` if item existed and was deleted.
+Delete an item using ldk-node's key derivation. Returns `true` if item existed and was deleted.
 
 #### `vssListKeysLdk() -> [KeyVersion]`
 List all keys stored by ldk-node with their versions.
