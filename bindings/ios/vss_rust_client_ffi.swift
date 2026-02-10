@@ -738,6 +738,73 @@ public func FfiConverterTypeVssItem_lower(_ value: VssItem) -> RustBuffer {
     return FfiConverterTypeVssItem.lower(value)
 }
 
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+
+public enum LdkNamespace {
+    case `default`
+    case monitors
+    case monitorUpdates(monitorId: String
+    )
+    case archivedMonitors
+}
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLdkNamespace: FfiConverterRustBuffer {
+    typealias SwiftType = LdkNamespace
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LdkNamespace {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        case 1: return .default
+
+        case 2: return .monitors
+
+        case 3: return try .monitorUpdates(monitorId: FfiConverterString.read(from: &buf)
+            )
+
+        case 4: return .archivedMonitors
+
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: LdkNamespace, into buf: inout [UInt8]) {
+        switch value {
+        case .default:
+            writeInt(&buf, Int32(1))
+
+        case .monitors:
+            writeInt(&buf, Int32(2))
+
+        case let .monitorUpdates(monitorId):
+            writeInt(&buf, Int32(3))
+            FfiConverterString.write(monitorId, into: &buf)
+
+        case .archivedMonitors:
+            writeInt(&buf, Int32(4))
+        }
+    }
+}
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLdkNamespace_lift(_ buf: RustBuffer) throws -> LdkNamespace {
+    return try FfiConverterTypeLdkNamespace.lift(buf)
+}
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLdkNamespace_lower(_ value: LdkNamespace) -> RustBuffer {
+    return FfiConverterTypeLdkNamespace.lower(value)
+}
+
+extension LdkNamespace: Equatable, Hashable {}
+
 public enum VssError {
     case ConnectionError(errorDetails: String
     )
@@ -1120,11 +1187,11 @@ public func vssDelete(key: String) async throws -> Bool {
 /**
  * Deletes a key-value pair using ldk-node's namespaced key format.
  */
-public func vssDeleteLdk(key: String, primaryNamespace: String, secondaryNamespace: String) async throws -> Bool {
+public func vssDeleteLdk(key: String, namespace: LdkNamespace) async throws -> Bool {
     return
         try await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(FfiConverterString.lower(key), FfiConverterString.lower(primaryNamespace), FfiConverterString.lower(secondaryNamespace))
+                uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(FfiConverterString.lower(key), FfiConverterTypeLdkNamespace.lower(namespace))
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_i8,
             completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_i8,
@@ -1208,11 +1275,11 @@ public func vssGet(key: String) async throws -> VssItem? {
 /**
  * Retrieves a value by key using ldk-node's namespaced key format.
  */
-public func vssGetLdk(key: String, primaryNamespace: String, secondaryNamespace: String) async throws -> VssItem? {
+public func vssGetLdk(key: String, namespace: LdkNamespace) async throws -> VssItem? {
     return
         try await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(FfiConverterString.lower(key), FfiConverterString.lower(primaryNamespace), FfiConverterString.lower(secondaryNamespace))
+                uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(FfiConverterString.lower(key), FfiConverterTypeLdkNamespace.lower(namespace))
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
             completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
@@ -1301,11 +1368,12 @@ public func vssListKeys(prefix: String?) async throws -> [KeyVersion] {
 /**
  * Lists keys and versions using ldk-node's namespaced key format.
  */
-public func vssListKeysLdk(primaryNamespace: String, secondaryNamespace: String) async throws -> [KeyVersion] {
+public func vssListKeysLdk(namespace: LdkNamespace) async throws -> [KeyVersion] {
     return
         try await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(FfiConverterString.lower(primaryNamespace), FfiConverterString.lower(secondaryNamespace))
+                uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(FfiConverterTypeLdkNamespace.lower(namespace)
+                )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
             completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
@@ -1318,11 +1386,12 @@ public func vssListKeysLdk(primaryNamespace: String, secondaryNamespace: String)
 /**
  * Lists all items using ldk-node's namespaced key format.
  */
-public func vssListLdk(primaryNamespace: String, secondaryNamespace: String) async throws -> [VssItem] {
+public func vssListLdk(namespace: LdkNamespace) async throws -> [VssItem] {
     return
         try await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(FfiConverterString.lower(primaryNamespace), FfiConverterString.lower(secondaryNamespace))
+                uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(FfiConverterTypeLdkNamespace.lower(namespace)
+                )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
             completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
@@ -1503,11 +1572,11 @@ public func vssStore(key: String, value: Data) async throws -> VssItem {
 /**
  * Stores a key-value pair using ldk-node's namespaced key format.
  */
-public func vssStoreLdk(key: String, value: Data, primaryNamespace: String, secondaryNamespace: String) async throws -> VssItem {
+public func vssStoreLdk(key: String, value: Data, namespace: LdkNamespace) async throws -> VssItem {
     return
         try await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(FfiConverterString.lower(key), FfiConverterData.lower(value), FfiConverterString.lower(primaryNamespace), FfiConverterString.lower(secondaryNamespace))
+                uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(FfiConverterString.lower(key), FfiConverterData.lower(value), FfiConverterTypeLdkNamespace.lower(namespace))
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
             completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
@@ -1536,7 +1605,7 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 13005 {
         return InitializationResult.apiChecksumMismatch
     }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 15871 {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 5483 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 17660 {
@@ -1545,7 +1614,7 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 51694 {
         return InitializationResult.apiChecksumMismatch
     }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 54805 {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 7390 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842 {
@@ -1554,10 +1623,10 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638 {
         return InitializationResult.apiChecksumMismatch
     }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 517 {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 41363 {
         return InitializationResult.apiChecksumMismatch
     }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 57286 {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 59284 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 63115 {
@@ -1575,7 +1644,7 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42494 {
         return InitializationResult.apiChecksumMismatch
     }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 9766 {
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 21993 {
         return InitializationResult.apiChecksumMismatch
     }
 
