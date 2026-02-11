@@ -210,6 +210,36 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_build_prefix_ldk_is_prefix_of_build_key_ldk() {
+        let seed = [42u8; 64];
+        let client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        for namespace in &[
+            LdkNamespace::Default,
+            LdkNamespace::Monitors,
+            LdkNamespace::ArchivedMonitors,
+            LdkNamespace::MonitorUpdates { monitor_id: "abc123".to_string() },
+        ] {
+            let prefix = client.build_prefix_ldk(namespace);
+            let full_key = client.build_key_ldk("some_key", namespace);
+
+            // The prefix must be a string prefix of any full key in the same namespace
+            assert!(
+                full_key.starts_with(&prefix),
+                "prefix {:?} is not a prefix of key {:?} for namespace {:?}",
+                prefix, full_key, namespace
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn test_app_and_ldk_keys_are_different() {
         let seed = [42u8; 64];
         let client = VssClient::new_with_lnurl_auth(

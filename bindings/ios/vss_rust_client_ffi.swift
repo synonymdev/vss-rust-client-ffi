@@ -1328,6 +1328,24 @@ public func vssList(prefix: String?) async throws -> [VssItem] {
 }
 
 /**
+ * Lists all keys across all singleton LDK namespaces.
+ */
+public func vssListAllKeysLdk() async throws -> [KeyVersion] {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
  * Lists keys and their versions without retrieving the actual values.
  *
  * This function is more efficient than `vss_list` when you only need to know
@@ -1618,6 +1636,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638 {

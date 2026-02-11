@@ -84,18 +84,21 @@ For interacting with data stored by ldk-node (e.g., `network_graph`, `channel_ma
 
 ```swift
 // Delete an ldk-node key (e.g., stale network graph)
-let wasDeleted = try await vssDeleteLdk(key: "network_graph")
+let wasDeleted = try await vssDeleteLdk(key: "network_graph", namespace: .default)
 
 // Read an ldk-node key
-if let item = try await vssGetLdk(key: "network_graph") {
+if let item = try await vssGetLdk(key: "network_graph", namespace: .default) {
     print("Graph size: \(item.value.count) bytes")
 }
 
-// List all ldk-node keys
-let ldkKeys = try await vssListKeysLdk()
-for kv in ldkKeys {
+// List all ldk-node keys across all namespaces
+let allLdkKeys = try await vssListAllKeysLdk()
+for kv in allLdkKeys {
     print("LDK key: \(kv.key), Version: \(kv.version)")
 }
+
+// List ldk-node keys in a specific namespace
+let defaultKeys = try await vssListKeysLdk(namespace: .default)
 ```
 
 ### Python
@@ -153,14 +156,14 @@ vss_shutdown_client()
 
 ```python
 # Delete an ldk-node key
-was_deleted = await vss_delete_ldk("network_graph")
+was_deleted = await vss_delete_ldk("network_graph", LdkNamespace.DEFAULT)
 
 # Read an ldk-node key
-item = await vss_get_ldk("network_graph")
+item = await vss_get_ldk("network_graph", LdkNamespace.DEFAULT)
 
-# List all ldk-node keys
-ldk_keys = await vss_list_keys_ldk()
-for kv in ldk_keys:
+# List all ldk-node keys across all namespaces
+all_ldk_keys = await vss_list_all_keys_ldk()
+for kv in all_ldk_keys:
     print(f"LDK key: {kv.key}, Version: {kv.version}")
 ```
 
@@ -212,15 +215,18 @@ vssShutdownClient()
 
 ```kotlin
 // Delete an ldk-node key (e.g., stale network graph)
-val wasDeleted = vssDeleteLdk(key = "network_graph")
+val wasDeleted = vssDeleteLdk(key = "network_graph", namespace = LdkNamespace.Default)
 
 // Read an ldk-node key
-val graph = vssGetLdk(key = "network_graph")
+val graph = vssGetLdk(key = "network_graph", namespace = LdkNamespace.Default)
 graph?.let { println("Graph size: ${it.value.size} bytes") }
 
-// List all ldk-node keys
-val ldkKeys = vssListKeysLdk()
-ldkKeys.forEach { println("LDK key: ${it.key}, Version: ${it.version}") }
+// List all ldk-node keys across all namespaces
+val allLdkKeys = vssListAllKeysLdk()
+allLdkKeys.forEach { println("LDK key: ${it.key}, Version: ${it.version}") }
+
+// List ldk-node keys in a specific namespace
+val defaultKeys = vssListKeysLdk(namespace = LdkNamespace.Default)
 ```
 
 ## API Reference
@@ -280,20 +286,23 @@ These methods derive the same encryption and obfuscation keys as ldk-node. Use t
 
 The standard `vssStore`/`vssGet`/`vssDelete` methods use different key derivation and **cannot** read or delete keys written by ldk-node.
 
-#### `vssStoreLdk(key: String, value: Data) -> VssItem`
-Store a key-value pair using ldk-node's key derivation.
+#### `vssStoreLdk(key: String, value: Data, namespace: LdkNamespace) -> VssItem`
+Store a key-value pair using ldk-node's key derivation in the given namespace.
 
-#### `vssGetLdk(key: String) -> VssItem?`
+#### `vssGetLdk(key: String, namespace: LdkNamespace) -> VssItem?`
 Retrieve an item by key using ldk-node's key derivation. Returns `null` if not found.
 
-#### `vssDeleteLdk(key: String) -> Bool`
+#### `vssDeleteLdk(key: String, namespace: LdkNamespace) -> Bool`
 Delete an item using ldk-node's key derivation. Returns `true` if item existed and was deleted.
 
-#### `vssListKeysLdk() -> [KeyVersion]`
-List all keys stored by ldk-node with their versions.
+#### `vssListKeysLdk(namespace: LdkNamespace) -> [KeyVersion]`
+List keys stored by ldk-node in the given namespace.
 
-#### `vssListLdk() -> [VssItem]`
-List all items stored by ldk-node with their full data.
+#### `vssListAllKeysLdk() -> [KeyVersion]`
+List all keys across all singleton LDK namespaces (Default, Monitors, ArchivedMonitors).
+
+#### `vssListLdk(namespace: LdkNamespace) -> [VssItem]`
+List all items stored by ldk-node in the given namespace with their full data.
 
 ### Data Types
 
@@ -309,6 +318,12 @@ List all items stored by ldk-node with their full data.
 #### `KeyVersion`
 - `key: String` - The item key
 - `version: Int64` - Version number
+
+#### `LdkNamespace`
+- `Default` - Default namespace (channel_manager, scorer, etc.)
+- `Monitors` - Channel monitors
+- `MonitorUpdates(monitorId)` - Updates for a specific monitor
+- `ArchivedMonitors` - Archived channel monitors
 
 #### `VssError`
 Error enum with detailed error information for different failure scenarios.
