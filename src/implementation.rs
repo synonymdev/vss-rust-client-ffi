@@ -516,19 +516,7 @@ impl VssClient {
     /// Lists all raw keys on the server without any deobfuscation.
     /// Diagnostic function to see exactly what keys exist on the server.
     pub async fn list_all_raw_keys(&self) -> Result<Vec<KeyVersion>, VssError> {
-        let request = ListKeyVersionsRequest {
-            store_id: self.store_id.clone(),
-            key_prefix: None,
-            page_size: None,
-            page_token: None,
-        };
-        let results = self
-            .inner
-            .list_key_versions(&request)
-            .await
-            .map_err(|e| convert_error(e, "list_all_raw_keys"))?
-            .key_versions;
-
+        let results = self.list_all_key_versions_paginated(None).await?;
         Ok(results
             .into_iter()
             .map(|kv| KeyVersion {
@@ -683,19 +671,7 @@ impl VssClient {
         prefix: Option<String>,
         key_obfuscator: &Option<Arc<KeyObfuscator>>,
     ) -> Result<Vec<KeyVersion>, VssError> {
-        let request = ListKeyVersionsRequest {
-            store_id: self.store_id.clone(),
-            key_prefix: prefix,
-            page_size: None,
-            page_token: None,
-        };
-        let results = self
-            .inner
-            .list_key_versions(&request)
-            .await
-            .map_err(|e| convert_error(e, "list_key_versions"))?
-            .key_versions;
-
+        let results = self.list_all_key_versions_paginated(prefix).await?;
         let mut result = Vec::new();
         for kv in results {
             if let Ok(original_key) = Self::deobfuscate_key(key_obfuscator, &kv.key) {
@@ -706,6 +682,38 @@ impl VssClient {
             }
         }
         Ok(result)
+    }
+
+    /// Fetches all key versions across pages using pagination.
+    async fn list_all_key_versions_paginated(
+        &self,
+        prefix: Option<String>,
+    ) -> Result<Vec<ExternalKeyValue>, VssError> {
+        let mut all_results = Vec::new();
+        let mut page_token: Option<String> = None;
+
+        loop {
+            let request = ListKeyVersionsRequest {
+                store_id: self.store_id.clone(),
+                key_prefix: prefix.clone(),
+                page_size: Some(100),
+                page_token: page_token.clone(),
+            };
+            let response = self
+                .inner
+                .list_key_versions(&request)
+                .await
+                .map_err(|e| convert_error(e, "list_paginated"))?;
+
+            all_results.extend(response.key_versions);
+
+            match response.next_page_token {
+                Some(ref token) if !token.is_empty() => page_token = Some(token.clone()),
+                _ => break,
+            }
+        }
+
+        Ok(all_results)
     }
 }
 

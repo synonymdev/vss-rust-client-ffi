@@ -327,14 +327,14 @@ mod tests {
         let (_, obf_master) = derive_data_encryption_and_obfuscation_keys(&vss_seed);
         let obfuscator = KeyObfuscator::new(obf_master);
 
-        // V0/V1 Default namespace: just obf(key)
+        // Obfuscation roundtrip: obfuscate then deobfuscate
         let obfuscated = obfuscator.obfuscate("network_graph");
         assert_eq!(
             obfuscator.deobfuscate(&obfuscated).unwrap(),
             "network_graph"
         );
 
-        // V1 with namespace prefix: obf(prefix)#obf(key)
+        // V1 with namespace prefix (including Default "#"): obf(prefix)#obf(key)
         let prefix = obfuscator.obfuscate("monitors#");
         let key = obfuscator.obfuscate("network_graph");
         let composite = format!("{}#{}", prefix, key);
@@ -378,9 +378,10 @@ mod tests {
         .await
         .unwrap();
 
-        // Default namespace returns single format
+        // Default namespace returns V0 and V1 format (same as all namespaces)
         let default_result = client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Default);
-        assert!(default_result.starts_with("default: "));
+        assert!(default_result.contains("v0: "));
+        assert!(default_result.contains("v1: "));
 
         // Namespaced returns V0 and V1 formats
         let monitors_result = client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Monitors);
@@ -413,19 +414,16 @@ mod tests {
         .await
         .unwrap();
 
-        // The shared client incorrectly wraps Default namespace with obf("#")#obf(key)
-        // while ldk-node just uses obf(key) for Default ("", "").
-        // The dedicated LDK client correctly matches ldk-node's behavior.
+        // Both clients now correctly use V1 format: obf("#")#obf(key) for Default namespace
         let shared_key = shared_client.build_key_ldk("network_graph", &LdkNamespace::Default);
         let ldk_debug = ldk_client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Default);
-        let ldk_key = ldk_debug.strip_prefix("default: ").unwrap();
+        let v1_line = ldk_debug.lines().find(|l| l.starts_with("v1: ")).unwrap();
+        let ldk_key = v1_line.strip_prefix("v1: ").unwrap();
 
-        // The shared client produces a DIFFERENT key than ldk-node for Default namespace
-        assert_ne!(shared_key, ldk_key, "shared client should differ from ldk-node for Default namespace");
-        // The shared client adds a prefix even for Default namespace (bug)
-        assert!(shared_key.contains('#'), "shared client incorrectly adds prefix for Default namespace");
-        // The dedicated LDK client produces a key WITHOUT prefix (correct, matches ldk-node)
-        assert!(!ldk_key.contains('#'), "LDK client should not add prefix for Default namespace");
+        // Both clients produce the same V1 key for Default namespace
+        assert_eq!(shared_key, ldk_key, "shared and LDK clients should produce same key for Default namespace");
+        // Default namespace V1 key contains '#' separator (obf("#")#obf(key))
+        assert!(ldk_key.contains('#'), "Default namespace V1 key should contain '#' separator");
     }
 
     #[tokio::test]
