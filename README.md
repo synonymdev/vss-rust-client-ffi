@@ -78,27 +78,43 @@ print("Deleted: \(wasDeleted)")
 vssShutdownClient()
 ```
 
-#### LDK-Specific Operations (Swift)
+#### Dedicated LDK Client (Swift)
 
-For interacting with data stored by ldk-node (e.g., `network_graph`, `channel_manager`, `scorer`), use the LDK variants which derive the matching encryption and obfuscation keys:
+For fully isolated LDK operations with independent key derivation (full 64-byte BIP39 seed):
 
 ```swift
-// Delete an ldk-node key (e.g., stale network graph)
-let wasDeleted = try await vssDeleteLdk(key: "network_graph", namespace: .default)
+// Initialize the dedicated LDK client (separate from the app client)
+try await vssNewLdkClientWithLnurlAuth(
+    baseUrl: "https://vss.example.com",
+    storeId: storeId,
+    mnemonic: mnemonic,
+    passphrase: passphrase,
+    lnurlAuthServerUrl: "https://auth.example.com/lnurl"
+)
 
 // Read an ldk-node key
-if let item = try await vssGetLdk(key: "network_graph", namespace: .default) {
+if let item = try await vssLdkGet(key: "network_graph", namespace: .default) {
     print("Graph size: \(item.value.count) bytes")
 }
 
-// List all ldk-node keys across all namespaces
-let allLdkKeys = try await vssListAllKeysLdk()
-for kv in allLdkKeys {
-    print("LDK key: \(kv.key), Version: \(kv.version)")
-}
+// Store a key
+let item = try await vssLdkStore(
+    key: "network_graph",
+    value: graphData,
+    namespace: .default
+)
 
-// List ldk-node keys in a specific namespace
-let defaultKeys = try await vssListKeysLdk(namespace: .default)
+// Delete a key
+let wasDeleted = try await vssLdkDelete(key: "network_graph", namespace: .default)
+
+// List keys in a namespace
+let keys = try await vssLdkListKeys(namespace: .monitors)
+
+// List all keys across all namespaces
+let allKeys = try await vssLdkListAllKeys()
+
+// Clean shutdown
+vssShutdownLdkClient()
 ```
 
 ### Python
@@ -152,19 +168,35 @@ print(f"Deleted: {was_deleted}")
 vss_shutdown_client()
 ```
 
-#### LDK-Specific Operations (Python)
+#### Dedicated LDK Client (Python)
 
 ```python
-# Delete an ldk-node key
-was_deleted = await vss_delete_ldk("network_graph", LdkNamespace.DEFAULT)
+# Initialize the dedicated LDK client (separate from the app client)
+await vss_new_ldk_client_with_lnurl_auth(
+    "https://vss.example.com",
+    store_id,
+    mnemonic,
+    passphrase,
+    "https://auth.example.com/lnurl"
+)
 
 # Read an ldk-node key
-item = await vss_get_ldk("network_graph", LdkNamespace.DEFAULT)
+item = await vss_ldk_get("network_graph", LdkNamespace.DEFAULT)
 
-# List all ldk-node keys across all namespaces
-all_ldk_keys = await vss_list_all_keys_ldk()
-for kv in all_ldk_keys:
-    print(f"LDK key: {kv.key}, Version: {kv.version}")
+# Store a key
+item = await vss_ldk_store("network_graph", graph_data, LdkNamespace.DEFAULT)
+
+# Delete a key
+was_deleted = await vss_ldk_delete("network_graph", LdkNamespace.DEFAULT)
+
+# List keys in a namespace
+keys = await vss_ldk_list_keys(LdkNamespace.MONITORS)
+
+# List all keys across all namespaces
+all_keys = await vss_ldk_list_all_keys()
+
+# Clean shutdown
+vss_shutdown_ldk_client()
 ```
 
 ### Kotlin (Android)
@@ -211,22 +243,40 @@ items.forEach { item ->
 vssShutdownClient()
 ```
 
-#### LDK-Specific Operations (Kotlin)
+#### Dedicated LDK Client (Kotlin)
 
 ```kotlin
-// Delete an ldk-node key (e.g., stale network graph)
-val wasDeleted = vssDeleteLdk(key = "network_graph", namespace = LdkNamespace.Default)
+// Initialize the dedicated LDK client (separate from the app client)
+vssNewLdkClientWithLnurlAuth(
+    baseUrl = "https://vss.example.com",
+    storeId = storeId,
+    mnemonic = mnemonic,
+    passphrase = passphrase,
+    lnurlAuthServerUrl = "https://auth.example.com/lnurl"
+)
 
 // Read an ldk-node key
-val graph = vssGetLdk(key = "network_graph", namespace = LdkNamespace.Default)
-graph?.let { println("Graph size: ${it.value.size} bytes") }
+val item = vssLdkGet(key = "network_graph", namespace = LdkNamespace.Default)
+item?.let { println("Graph size: ${it.value.size} bytes") }
 
-// List all ldk-node keys across all namespaces
-val allLdkKeys = vssListAllKeysLdk()
-allLdkKeys.forEach { println("LDK key: ${it.key}, Version: ${it.version}") }
+// Store a key
+val stored = vssLdkStore(
+    key = "network_graph",
+    value = graphData,
+    namespace = LdkNamespace.Default
+)
 
-// List ldk-node keys in a specific namespace
-val defaultKeys = vssListKeysLdk(namespace = LdkNamespace.Default)
+// Delete a key
+val wasDeleted = vssLdkDelete(key = "network_graph", namespace = LdkNamespace.Default)
+
+// List keys in a namespace
+val keys = vssLdkListKeys(namespace = LdkNamespace.Monitors)
+
+// List all keys across all namespaces
+val allKeys = vssLdkListAllKeys()
+
+// Clean shutdown
+vssShutdownLdkClient()
 ```
 
 ## API Reference
@@ -280,29 +330,30 @@ Store multiple items in a single atomic transaction. The server manages versioni
 #### `vssDelete(key: String) -> Bool`
 Delete an item. Returns `true` if item existed and was deleted.
 
-### LDK Data Operations
+### Dedicated LDK Client
 
-These methods derive the same encryption and obfuscation keys as ldk-node. Use them to interact with data written by ldk-node (e.g., `network_graph`, `channel_manager`, `scorer`).
+A fully separate client (`LdkVssClient`) with its own key derivation using the full 64-byte BIP39 seed, independent from the app backup client. Use this when LDK operations must be completely isolated from app backup operations.
 
-The standard `vssStore`/`vssGet`/`vssDelete` methods use different key derivation and **cannot** read or delete keys written by ldk-node.
+#### `vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String) -> Void`
+Initialize the dedicated LDK client with LNURL-auth authentication. This client is fully separate from the app client initialized with `vssNewClientWithLnurlAuth`.
 
-#### `vssStoreLdk(key: String, value: Data, namespace: LdkNamespace) -> VssItem`
-Store a key-value pair using ldk-node's key derivation in the given namespace.
+#### `vssShutdownLdkClient() -> Void`
+Shutdown the dedicated LDK client and clean up resources.
 
-#### `vssGetLdk(key: String, namespace: LdkNamespace) -> VssItem?`
-Retrieve an item by key using ldk-node's key derivation. Returns `null` if not found.
+#### `vssLdkStore(key: String, value: Data, namespace: LdkNamespace) -> VssItem`
+Store a key-value pair using the dedicated LDK client.
 
-#### `vssDeleteLdk(key: String, namespace: LdkNamespace) -> Bool`
-Delete an item using ldk-node's key derivation. Returns `true` if item existed and was deleted.
+#### `vssLdkGet(key: String, namespace: LdkNamespace) -> VssItem?`
+Retrieve an item by key using the dedicated LDK client. Returns `null` if not found.
 
-#### `vssListKeysLdk(namespace: LdkNamespace) -> [KeyVersion]`
-List keys stored by ldk-node in the given namespace.
+#### `vssLdkDelete(key: String, namespace: LdkNamespace) -> Bool`
+Delete an item using the dedicated LDK client. Returns `true` if item existed and was deleted.
 
-#### `vssListAllKeysLdk() -> [KeyVersion]`
-List all keys across all singleton LDK namespaces (Default, Monitors, ArchivedMonitors).
+#### `vssLdkListKeys(namespace: LdkNamespace) -> [KeyVersion]`
+List keys in a namespace using the dedicated LDK client.
 
-#### `vssListLdk(namespace: LdkNamespace) -> [VssItem]`
-List all items stored by ldk-node in the given namespace with their full data.
+#### `vssLdkListAllKeys() -> [KeyVersion]`
+List all keys across all singleton LDK namespaces using the dedicated LDK client.
 
 ### Data Types
 
@@ -389,8 +440,6 @@ cargo run --bin uniffi-bindgen generate \
     --language swift \
     --out-dir ./test_bindings
 ```
-
-For detailed testing information including integration tests, see [TESTING.md](TESTING.md).
 
 ## Architecture
 

@@ -111,8 +111,6 @@ pub struct VssClient {
     storable_builder: Arc<StorableBuilder<RandEntropySource>>,
     pub(crate) app_data_encryption_key: [u8; 32],
     pub(crate) app_key_obfuscator: Option<Arc<KeyObfuscator>>,
-    pub(crate) ldk_data_encryption_key: [u8; 32],
-    pub(crate) ldk_key_obfuscator: Option<Arc<KeyObfuscator>>,
 }
 
 impl VssClient {
@@ -127,7 +125,7 @@ impl VssClient {
     pub async fn new(base_url: String, store_id: String) -> Result<Self, VssError> {
         let header_provider = Arc::new(FixedHeaders::new(HashMap::new()));
 
-        Self::new_with_header_provider(base_url, store_id, header_provider, None, None).await
+        Self::new_with_header_provider(base_url, store_id, header_provider, None).await
     }
 
     /// Creates a new VSS client instance with LNURL-auth.
@@ -191,29 +189,11 @@ impl VssClient {
 
         let header_provider = Arc::new(lnurl_auth_jwt_provider);
 
-        // Derive LDK keys from full 64-byte seed (matching ldk-node's key derivation)
-        let ldk_master_xprv =
-            Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to create LDK master key: {}", e),
-            })?;
-        let ldk_vss_xprv = ldk_master_xprv
-            .derive_priv(
-                &secp,
-                &[ChildNumber::Hardened {
-                    index: VSS_HARDENED_CHILD_INDEX,
-                }],
-            )
-            .map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to derive LDK VSS key: {}", e),
-            })?;
-        let ldk_vss_seed_bytes: [u8; 32] = ldk_vss_xprv.private_key.secret_bytes();
-
         Self::new_with_header_provider(
             base_url,
             store_id,
             header_provider,
             Some(app_vss_seed_bytes),
-            Some(ldk_vss_seed_bytes),
         )
         .await
     }
@@ -224,7 +204,6 @@ impl VssClient {
         store_id: String,
         header_provider: Arc<dyn VssHeaderProvider>,
         app_vss_seed: Option<[u8; 32]>,
-        ldk_vss_seed: Option<[u8; 32]>,
     ) -> Result<Self, VssError> {
         let retry_policy = ExponentialBackoffRetryPolicy::new(std::time::Duration::from_millis(10))
             .with_max_attempts(10)
@@ -251,22 +230,12 @@ impl VssClient {
             ([0u8; 32], None)
         };
 
-        let (ldk_data_encryption_key, ldk_key_obfuscator) = if let Some(seed) = ldk_vss_seed {
-            let (dek, obfuscation_master_key) =
-                derive_data_encryption_and_obfuscation_keys(&seed);
-            (dek, Some(Arc::new(KeyObfuscator::new(obfuscation_master_key))))
-        } else {
-            ([0u8; 32], None)
-        };
-
         Ok(VssClient {
             inner: Arc::new(client),
             store_id,
             storable_builder,
             app_data_encryption_key,
             app_key_obfuscator,
-            ldk_data_encryption_key,
-            ldk_key_obfuscator,
         })
     }
 
@@ -421,117 +390,7 @@ impl VssClient {
         self.delete_by_storage_key(&storage_key).await
     }
 
-    /// Stores a key-value pair using ldk-node's namespaced key format.
-    pub async fn store_ldk(
-        &self,
-        key: String,
-        value: Vec<u8>,
-        namespace: &LdkNamespace,
-    ) -> Result<VssItem, VssError> {
-        let version = -1;
-        let storage_key = self.build_key_ldk(&key, namespace);
-        let storable = self.storable_builder.build(
-            value.clone(),
-            version,
-            &self.ldk_data_encryption_key,
-            storage_key.as_bytes(),
-        );
-
-        let request = PutObjectRequest {
-            store_id: self.store_id.clone(),
-            global_version: None,
-            transaction_items: vec![ExternalKeyValue {
-                key: storage_key,
-                version,
-                value: storable.encode_to_vec(),
-            }],
-            delete_items: vec![],
-        };
-        match self.inner.put_object(&request).await {
-            Ok(_) => Ok(VssItem { key, value, version: -1 }),
-            Err(e) => Err(convert_error(e, "store_ldk")),
-        }
-    }
-
-    /// Retrieves a value by key using ldk-node's namespaced key format.
-    pub async fn get_ldk(
-        &self,
-        key: String,
-        namespace: &LdkNamespace,
-    ) -> Result<Option<VssItem>, VssError> {
-        let storage_key = self.build_key_ldk(&key, namespace);
-
-        if let Some((value, version)) =
-            self.try_get_raw(&storage_key, &self.ldk_data_encryption_key).await?
-        {
-            return Ok(Some(VssItem { key, value, version }));
-        }
-
-        Ok(None)
-    }
-
-    /// Deletes a key-value pair using ldk-node's namespaced key format.
-    pub async fn delete_ldk(
-        &self,
-        key: String,
-        namespace: &LdkNamespace,
-    ) -> Result<bool, VssError> {
-        let storage_key = self.build_key_ldk(&key, namespace);
-        self.delete_by_storage_key(&storage_key).await
-    }
-
-    /// Lists keys and versions using ldk-node's namespaced key format.
-    pub async fn list_keys_ldk(
-        &self,
-        namespace: &LdkNamespace,
-    ) -> Result<Vec<KeyVersion>, VssError> {
-        let prefix = Some(self.build_prefix_ldk(namespace));
-        self.list_key_versions(prefix, &self.ldk_key_obfuscator).await
-    }
-
-    /// Lists all items using ldk-node's namespaced key format.
-    pub async fn list_ldk(
-        &self,
-        namespace: &LdkNamespace,
-    ) -> Result<Vec<VssItem>, VssError> {
-        let keys = self.list_keys_ldk(namespace).await?;
-        let mut items = Vec::new();
-        for kv in keys {
-            if let Ok(Some(item)) = self.get_ldk(kv.key, namespace).await {
-                items.push(item);
-            }
-        }
-        Ok(items)
-    }
-
-    /// Lists all LDK keys across all namespaces.
-    ///
-    /// Uses no server-side prefix filter, relying on client-side deobfuscation
-    /// to select only keys matching the LDK obfuscator. This handles both
-    /// V0 (unobfuscated namespace prefixes) and V1 (obfuscated) schema formats.
-    pub async fn list_all_keys_ldk(&self) -> Result<Vec<KeyVersion>, VssError> {
-        self.list_key_versions(None, &self.ldk_key_obfuscator).await
-    }
-
     // --- Key obfuscation helpers ---
-
-    /// Builds an obfuscated storage key using the given obfuscator.
-    fn obfuscate_key(
-        obfuscator: &KeyObfuscator,
-        key: &str,
-        primary_namespace: Option<&str>,
-        secondary_namespace: Option<&str>,
-    ) -> String {
-        match (primary_namespace, secondary_namespace) {
-            (Some(pn), Some(sn)) => {
-                let prefix = format!("{}#{}", pn, sn);
-                let obfuscated_prefix = obfuscator.obfuscate(&prefix);
-                let obfuscated_key = obfuscator.obfuscate(key);
-                format!("{}#{}", obfuscated_prefix, obfuscated_key)
-            }
-            _ => obfuscator.obfuscate(key),
-        }
-    }
 
     /// Tries to deobfuscate a storage key using the given obfuscator.
     fn try_deobfuscate(obfuscator: &KeyObfuscator, storage_key: &str) -> Option<String> {
@@ -567,37 +426,9 @@ impl VssClient {
         }
     }
 
-    /// Converts a user key to storage key using the ldk obfuscator with namespaces.
-    pub(crate) fn build_key_ldk(
-        &self,
-        key: &str,
-        namespace: &LdkNamespace,
-    ) -> String {
-        if let Some(ref obfuscator) = self.ldk_key_obfuscator {
-            Self::obfuscate_key(obfuscator, key, Some(namespace.primary()), Some(namespace.secondary()))
-        } else {
-            key.to_string()
-        }
-    }
-
-    /// Builds the obfuscated namespace prefix for listing ldk keys.
-    pub(crate) fn build_prefix_ldk(&self, namespace: &LdkNamespace) -> String {
-        if let Some(ref obfuscator) = self.ldk_key_obfuscator {
-            let prefix = format!("{}#{}", namespace.primary(), namespace.secondary());
-            obfuscator.obfuscate(&prefix)
-        } else {
-            format!("{}#{}", namespace.primary(), namespace.secondary())
-        }
-    }
-
     #[cfg(test)]
     pub(crate) fn extract_key(&self, storage_key: &str) -> Result<String, VssError> {
         Self::deobfuscate_key(&self.app_key_obfuscator, storage_key)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn extract_key_ldk(&self, storage_key: &str) -> Result<String, VssError> {
-        Self::deobfuscate_key(&self.ldk_key_obfuscator, storage_key)
     }
 
     // --- Low-level helpers ---
