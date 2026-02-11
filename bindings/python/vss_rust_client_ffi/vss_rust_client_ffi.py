@@ -463,13 +463,9 @@ def _uniffi_check_contract_api_version(lib):
 def _uniffi_check_api_checksums(lib):
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 13005:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk() != 5483:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id() != 17660:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get() != 51694:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 7390:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete() != 46664:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -483,13 +479,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 41363:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk() != 59284:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 63115:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -504,8 +494,6 @@ def _uniffi_check_api_checksums(lib):
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_ldk_client() != 20913:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42494:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk() != 21993:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
 
 # A ctypes library to expose the extern-C FFI definitions.
@@ -617,11 +605,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk.argtypes = (
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -633,11 +616,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk.argtypes = (
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_delete.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -665,21 +643,10 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk.argtypes = (
-    _UniffiRustBuffer,
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk.argtypes = (
-    _UniffiRustBuffer,
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_new_client.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -718,12 +685,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk.argtypes = (
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk.restype = ctypes.c_uint64
 _UniffiLib.ffi_vss_rust_client_ffi_rustbuffer_alloc.argtypes = (
     ctypes.c_uint64,
     ctypes.POINTER(_UniffiRustCallStatus),
@@ -995,18 +956,12 @@ _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_void.restype = None
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete_ldk.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete.restype = ctypes.c_uint16
@@ -1025,18 +980,9 @@ _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_store.restype = ctyp
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_ldk.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_new_client.restype = ctypes.c_uint16
@@ -1058,9 +1004,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_ldk_client.rest
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_store.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_store.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_store_ldk.restype = ctypes.c_uint16
 _UniffiLib.ffi_vss_rust_client_ffi_uniffi_contract_version.argtypes = (
 )
 _UniffiLib.ffi_vss_rust_client_ffi_uniffi_contract_version.restype = ctypes.c_uint32
@@ -1937,30 +1880,6 @@ async def vss_delete(key: "str") -> "bool":
 _UniffiConverterTypeVssError,
 
     )
-async def vss_delete_ldk(key: "str",namespace: "LdkNamespace") -> "bool":
-
-    """
-    Deletes a key-value pair using ldk-node's namespaced key format.
-    """
-
-    _UniffiConverterString.check_lower(key)
-    
-    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
-    
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_delete_ldk(
-        _UniffiConverterString.lower(key),
-        _UniffiConverterTypeLdkNamespace.lower(namespace)),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_i8,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_i8,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_i8,
-        # lift function
-        _UniffiConverterBool.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
 
 def vss_derive_store_id(prefix: "str",mnemonic: "str",passphrase: "typing.Optional[str]") -> "str":
     """
@@ -2029,30 +1948,6 @@ async def vss_get(key: "str") -> "typing.Optional[VssItem]":
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get(
         _UniffiConverterString.lower(key)),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-        # lift function
-        _UniffiConverterOptionalTypeVssItem.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
-async def vss_get_ldk(key: "str",namespace: "LdkNamespace") -> "typing.Optional[VssItem]":
-
-    """
-    Retrieves a value by key using ldk-node's namespaced key format.
-    """
-
-    _UniffiConverterString.check_lower(key)
-    
-    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
-    
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(
-        _UniffiConverterString.lower(key),
-        _UniffiConverterTypeLdkNamespace.lower(namespace)),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
@@ -2218,24 +2113,6 @@ async def vss_list(prefix: "typing.Optional[str]") -> "typing.List[VssItem]":
 _UniffiConverterTypeVssError,
 
     )
-async def vss_list_all_keys_ldk() -> "typing.List[KeyVersion]":
-
-    """
-    Lists all keys across all singleton LDK namespaces.
-    """
-
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-        # lift function
-        _UniffiConverterSequenceTypeKeyVersion.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
 async def vss_list_keys(prefix: "typing.Optional[str]") -> "typing.List[KeyVersion]":
 
     """
@@ -2272,48 +2149,6 @@ async def vss_list_keys(prefix: "typing.Optional[str]") -> "typing.List[KeyVersi
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
         # lift function
         _UniffiConverterSequenceTypeKeyVersion.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
-async def vss_list_keys_ldk(namespace: "LdkNamespace") -> "typing.List[KeyVersion]":
-
-    """
-    Lists keys and versions using ldk-node's namespaced key format.
-    """
-
-    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
-    
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(
-        _UniffiConverterTypeLdkNamespace.lower(namespace)),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-        # lift function
-        _UniffiConverterSequenceTypeKeyVersion.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
-async def vss_list_ldk(namespace: "LdkNamespace") -> "typing.List[VssItem]":
-
-    """
-    Lists all items using ldk-node's namespaced key format.
-    """
-
-    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
-    
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_ldk(
-        _UniffiConverterTypeLdkNamespace.lower(namespace)),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-        # lift function
-        _UniffiConverterSequenceTypeVssItem.lift,
         
     # Error FFI converter
 _UniffiConverterTypeVssError,
@@ -2566,33 +2401,6 @@ async def vss_store(key: "str",value: "bytes") -> "VssItem":
 _UniffiConverterTypeVssError,
 
     )
-async def vss_store_ldk(key: "str",value: "bytes",namespace: "LdkNamespace") -> "VssItem":
-
-    """
-    Stores a key-value pair using ldk-node's namespaced key format.
-    """
-
-    _UniffiConverterString.check_lower(key)
-    
-    _UniffiConverterBytes.check_lower(value)
-    
-    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
-    
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_store_ldk(
-        _UniffiConverterString.lower(key),
-        _UniffiConverterBytes.lower(value),
-        _UniffiConverterTypeLdkNamespace.lower(namespace)),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-        # lift function
-        _UniffiConverterTypeVssItem.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
 
 __all__ = [
     "InternalError",
@@ -2604,20 +2412,15 @@ __all__ = [
     "ListKeyVersionsResponse",
     "VssItem",
     "vss_delete",
-    "vss_delete_ldk",
     "vss_derive_store_id",
     "vss_get",
-    "vss_get_ldk",
     "vss_ldk_delete",
     "vss_ldk_get",
     "vss_ldk_list_all_keys",
     "vss_ldk_list_keys",
     "vss_ldk_store",
     "vss_list",
-    "vss_list_all_keys_ldk",
     "vss_list_keys",
-    "vss_list_keys_ldk",
-    "vss_list_ldk",
     "vss_new_client",
     "vss_new_client_with_lnurl_auth",
     "vss_new_ldk_client_with_lnurl_auth",
@@ -2625,6 +2428,5 @@ __all__ = [
     "vss_shutdown_client",
     "vss_shutdown_ldk_client",
     "vss_store",
-    "vss_store_ldk",
 ]
 

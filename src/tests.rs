@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    use crate::types::LdkNamespace;
 
     // Unit tests for client creation and basic functionality
     //
@@ -147,11 +146,6 @@ mod tests {
         .unwrap();
 
         assert!(client.app_key_obfuscator.is_some());
-        assert!(client.ldk_key_obfuscator.is_some());
-        assert_ne!(
-            client.app_data_encryption_key,
-            client.ldk_data_encryption_key
-        );
     }
 
     #[tokio::test]
@@ -164,7 +158,6 @@ mod tests {
         .unwrap();
 
         assert!(client.app_key_obfuscator.is_none());
-        assert!(client.ldk_key_obfuscator.is_none());
     }
 
     #[tokio::test]
@@ -186,76 +179,6 @@ mod tests {
 
         // Should deobfuscate back to original
         assert_eq!(client.extract_key(&app_storage_key).unwrap(), "test_key");
-    }
-
-    #[tokio::test]
-    async fn test_build_and_extract_ldk_key() {
-        let seed = [42u8; 64];
-        let client = VssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        let ldk_storage_key = client.build_key_ldk("graph", &LdkNamespace::Default);
-
-        // LDK key should be obfuscated with namespace prefix
-        assert_ne!(ldk_storage_key, "graph");
-
-        // Should deobfuscate back to original
-        assert_eq!(client.extract_key_ldk(&ldk_storage_key).unwrap(), "graph");
-    }
-
-    #[tokio::test]
-    async fn test_build_prefix_ldk_is_prefix_of_build_key_ldk() {
-        let seed = [42u8; 64];
-        let client = VssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        for namespace in &[
-            LdkNamespace::Default,
-            LdkNamespace::Monitors,
-            LdkNamespace::ArchivedMonitors,
-            LdkNamespace::MonitorUpdates { monitor_id: "abc123".to_string() },
-        ] {
-            let prefix = client.build_prefix_ldk(namespace);
-            let full_key = client.build_key_ldk("some_key", namespace);
-
-            // The prefix must be a string prefix of any full key in the same namespace
-            assert!(
-                full_key.starts_with(&prefix),
-                "prefix {:?} is not a prefix of key {:?} for namespace {:?}",
-                prefix, full_key, namespace
-            );
-        }
-    }
-
-    #[tokio::test]
-    async fn test_app_and_ldk_keys_are_different() {
-        let seed = [42u8; 64];
-        let client = VssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        let app_storage_key = client.build_key("test_key");
-        let ldk_storage_key = client.build_key_ldk("test_key", &LdkNamespace::Default);
-
-        // App and LDK storage keys must differ (different obfuscators + format)
-        assert_ne!(app_storage_key, ldk_storage_key);
     }
 
     #[test]
@@ -362,72 +285,6 @@ mod tests {
         .await;
 
         assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_ldk_client_default_namespace_matches_ldk_node() {
-        use crate::LdkVssClient;
-
-        let seed = [42u8; 64];
-
-        // Create both clients with same seed
-        let shared_client = VssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        let ldk_client = LdkVssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        // Both clients now correctly use V1 format: obf("#")#obf(key) for Default namespace
-        let shared_key = shared_client.build_key_ldk("network_graph", &LdkNamespace::Default);
-        let ldk_key = ldk_client.build_key("network_graph", &LdkNamespace::Default);
-
-        // Both clients produce the same V1 key for Default namespace
-        assert_eq!(shared_key, ldk_key, "shared and LDK clients should produce same key for Default namespace");
-        // Default namespace V1 key contains '#' separator (obf("#")#obf(key))
-        assert!(ldk_key.contains('#'), "Default namespace V1 key should contain '#' separator");
-    }
-
-    #[tokio::test]
-    async fn test_ldk_client_namespaced_key_matches_shared_client() {
-        use crate::LdkVssClient;
-
-        let seed = [42u8; 64];
-
-        let shared_client = VssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        let ldk_client = LdkVssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        // For non-Default namespaces, both clients use V1 format: obf(prefix)#obf(key)
-        let shared_key = shared_client.build_key_ldk("some_key", &LdkNamespace::Monitors);
-        let ldk_key = ldk_client.build_key("some_key", &LdkNamespace::Monitors);
-
-        assert_eq!(shared_key, ldk_key, "both clients should produce same V1 key for namespaced entries");
     }
 
     #[test]
