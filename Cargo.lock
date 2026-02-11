@@ -2135,7 +2135,7 @@ dependencies = [
 
 [[package]]
 name = "vss-rust-client-ffi"
-version = "0.5.9"
+version = "0.5.10"
 dependencies = [
  "bip39",
  "bitcoin",

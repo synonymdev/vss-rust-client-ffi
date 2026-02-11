@@ -365,31 +365,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_ldk_client_debug_obfuscate() {
-        use crate::LdkVssClient;
-
-        let seed = [42u8; 64];
-        let client = LdkVssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            "https://auth.example.com/lnurl".to_string(),
-        )
-        .await
-        .unwrap();
-
-        // Default namespace returns V0 and V1 format (same as all namespaces)
-        let default_result = client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Default);
-        assert!(default_result.contains("v0: "));
-        assert!(default_result.contains("v1: "));
-
-        // Namespaced returns V0 and V1 formats
-        let monitors_result = client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Monitors);
-        assert!(monitors_result.contains("v0: "));
-        assert!(monitors_result.contains("v1: "));
-    }
-
-    #[tokio::test]
     async fn test_ldk_client_default_namespace_matches_ldk_node() {
         use crate::LdkVssClient;
 
@@ -416,9 +391,7 @@ mod tests {
 
         // Both clients now correctly use V1 format: obf("#")#obf(key) for Default namespace
         let shared_key = shared_client.build_key_ldk("network_graph", &LdkNamespace::Default);
-        let ldk_debug = ldk_client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Default);
-        let v1_line = ldk_debug.lines().find(|l| l.starts_with("v1: ")).unwrap();
-        let ldk_key = v1_line.strip_prefix("v1: ").unwrap();
+        let ldk_key = ldk_client.build_key("network_graph", &LdkNamespace::Default);
 
         // Both clients produce the same V1 key for Default namespace
         assert_eq!(shared_key, ldk_key, "shared and LDK clients should produce same key for Default namespace");
@@ -452,11 +425,9 @@ mod tests {
 
         // For non-Default namespaces, both clients use V1 format: obf(prefix)#obf(key)
         let shared_key = shared_client.build_key_ldk("some_key", &LdkNamespace::Monitors);
-        let ldk_debug = ldk_client.debug_obfuscate("some_key".to_string(), &LdkNamespace::Monitors);
-        let v1_line = ldk_debug.lines().find(|l| l.starts_with("v1: ")).unwrap();
-        let ldk_v1_key = v1_line.strip_prefix("v1: ").unwrap();
+        let ldk_key = ldk_client.build_key("some_key", &LdkNamespace::Monitors);
 
-        assert_eq!(shared_key, ldk_v1_key, "both clients should produce same V1 key for namespaced entries");
+        assert_eq!(shared_key, ldk_key, "both clients should produce same V1 key for namespaced entries");
     }
 
     #[test]
