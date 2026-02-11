@@ -24,8 +24,8 @@ use vss_client_ng::util::storable_builder::{EntropySource, StorableBuilder};
 use bip39::Mnemonic;
 use std::str::FromStr;
 
-const VSS_HARDENED_CHILD_INDEX: u32 = 877;
-const VSS_LNURL_AUTH_HARDENED_CHILD_INDEX: u32 = 138;
+pub(crate) const VSS_HARDENED_CHILD_INDEX: u32 = 877;
+pub(crate) const VSS_LNURL_AUTH_HARDENED_CHILD_INDEX: u32 = 138;
 const VSS_STORE_ID_HARDENED_CHILD_INDEX: u32 = 118;
 const VSS_STORE_ID_HASH_LENGTH: usize = 36;
 
@@ -504,19 +504,38 @@ impl VssClient {
         Ok(items)
     }
 
-    /// Lists all keys across all singleton LDK namespaces.
+    /// Lists all LDK keys across all namespaces.
+    ///
+    /// Uses no server-side prefix filter, relying on client-side deobfuscation
+    /// to select only keys matching the LDK obfuscator. This handles both
+    /// V0 (unobfuscated namespace prefixes) and V1 (obfuscated) schema formats.
     pub async fn list_all_keys_ldk(&self) -> Result<Vec<KeyVersion>, VssError> {
-        let namespaces = [
-            LdkNamespace::Default,
-            LdkNamespace::Monitors,
-            LdkNamespace::ArchivedMonitors,
-        ];
-        let mut all_keys = Vec::new();
-        for ns in &namespaces {
-            let keys = self.list_keys_ldk(ns).await?;
-            all_keys.extend(keys);
-        }
-        Ok(all_keys)
+        self.list_key_versions(None, &self.ldk_key_obfuscator).await
+    }
+
+    /// Lists all raw keys on the server without any deobfuscation.
+    /// Diagnostic function to see exactly what keys exist on the server.
+    pub async fn list_all_raw_keys(&self) -> Result<Vec<KeyVersion>, VssError> {
+        let request = ListKeyVersionsRequest {
+            store_id: self.store_id.clone(),
+            key_prefix: None,
+            page_size: None,
+            page_token: None,
+        };
+        let results = self
+            .inner
+            .list_key_versions(&request)
+            .await
+            .map_err(|e| convert_error(e, "list_all_raw_keys"))?
+            .key_versions;
+
+        Ok(results
+            .into_iter()
+            .map(|kv| KeyVersion {
+                key: kv.key,
+                version: kv.version,
+            })
+            .collect())
     }
 
     // --- Key obfuscation helpers ---
@@ -596,12 +615,12 @@ impl VssClient {
         }
     }
 
-    /// Converts a storage key back to user key using the app obfuscator.
+    #[cfg(test)]
     pub(crate) fn extract_key(&self, storage_key: &str) -> Result<String, VssError> {
         Self::deobfuscate_key(&self.app_key_obfuscator, storage_key)
     }
 
-    /// Converts a storage key back to user key using the ldk obfuscator.
+    #[cfg(test)]
     pub(crate) fn extract_key_ldk(&self, storage_key: &str) -> Result<String, VssError> {
         Self::deobfuscate_key(&self.ldk_key_obfuscator, storage_key)
     }
@@ -712,7 +731,7 @@ pub(crate) fn derive_data_encryption_and_obfuscation_keys(vss_seed: &[u8; 32]) -
 ///
 /// # Returns
 /// Internal VssError with appropriate error details
-fn convert_error(error: ExternalVssError, _operation: &str) -> VssError {
+pub(crate) fn convert_error(error: ExternalVssError, _operation: &str) -> VssError {
     match error {
         ExternalVssError::NoSuchKeyError(msg) => VssError::GetError { error_details: format!("Not found: {}", msg) },
         ExternalVssError::InternalServerError(msg) => VssError::NetworkError { error_details: msg },
