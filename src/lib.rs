@@ -590,13 +590,3 @@ pub async fn vss_ldk_list_all_raw_keys() -> Result<Vec<KeyVersion>, VssError> {
     })
 }
 
-/// Shows obfuscated key for a given key+namespace (LDK client).
-/// Diagnostic function to compare against raw keys on the server.
-#[uniffi::export]
-pub fn vss_ldk_debug_obfuscate(
-    key: String,
-    namespace: LdkNamespace,
-) -> Result<String, VssError> {
-    let client = try_get_ldk_client()?;
-    Ok(client.debug_obfuscate(key, &namespace))
-}

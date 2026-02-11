@@ -792,12 +792,6 @@ internal interface UniffiLib : Library {
         `namespace`: RustBuffer.ByValue,
     ): Long
 
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate(
-        `key`: RustBuffer.ByValue,
-        `namespace`: RustBuffer.ByValue,
-        uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-
     fun uniffi_vss_rust_client_ffi_fn_func_vss_ldk_delete(
         `key`: RustBuffer.ByValue,
         `namespace`: RustBuffer.ByValue,
@@ -1096,8 +1090,6 @@ internal interface UniffiLib : Library {
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk(): Short
 
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate(): Short
-
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete(): Short
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get(): Short
@@ -1166,9 +1158,6 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 7390.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate() != 6943.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete() != 46664.toShort()) {
@@ -2316,25 +2305,6 @@ suspend fun `vssGetLdk`(
         { FfiConverterOptionalTypeVssItem.lift(it) },
         // Error FFI converter
         VssException.ErrorHandler,
-    )
-
-/**
- * Shows obfuscated key for a given key+namespace (LDK client).
- * Diagnostic function to compare against raw keys on the server.
- */
-@Throws(VssException::class)
-fun `vssLdkDebugObfuscate`(
-    `key`: kotlin.String,
-    `namespace`: LdkNamespace,
-): kotlin.String =
-    FfiConverterString.lift(
-        uniffiRustCallWithError(VssException) { _status ->
-            UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate(
-                FfiConverterString.lower(`key`),
-                FfiConverterTypeLdkNamespace.lower(`namespace`),
-                _status,
-            )
-        },
     )
 
 /**

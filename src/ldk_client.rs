@@ -274,28 +274,10 @@ impl LdkVssClient {
             .collect())
     }
 
-    /// Shows the obfuscated key for a given key+namespace in both V0 and V1 formats.
-    /// Diagnostic function to compare against raw keys on the server.
-    pub fn debug_obfuscate(&self, key: String, namespace: &LdkNamespace) -> String {
-        let obfuscated_key = self.key_obfuscator.obfuscate(&key);
-        let primary = namespace.primary();
-        let secondary = namespace.secondary();
-        let prefix_str = format!("{}#{}", primary, secondary);
-
-        // V0: plaintext prefix + # + obfuscated key
-        let v0 = format!("{}#{}", prefix_str, obfuscated_key);
-
-        // V1: obfuscated prefix + # + obfuscated key
-        let obfuscated_prefix = self.key_obfuscator.obfuscate(&prefix_str);
-        let v1 = format!("{}#{}", obfuscated_prefix, obfuscated_key);
-
-        format!("v0: {}\nv1: {}", v0, v1)
-    }
-
     // --- Internal helpers ---
 
     /// Builds an obfuscated storage key matching ldk-node's V1 format.
-    fn build_key(&self, key: &str, namespace: &LdkNamespace) -> String {
+    pub(crate) fn build_key(&self, key: &str, namespace: &LdkNamespace) -> String {
         let primary = namespace.primary();
         let secondary = namespace.secondary();
         let prefix = format!("{}#{}", primary, secondary);
