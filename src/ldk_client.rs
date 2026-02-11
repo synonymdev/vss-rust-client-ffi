@@ -67,10 +67,9 @@ impl LdkVssClient {
     ) -> Result<Self, VssError> {
         let secp = Secp256k1::new();
 
-        // LNURL-auth: from truncated 32-byte seed path (same server identity as app client)
-        let truncated_seed: [u8; 32] = seed[..32].try_into().unwrap();
+        // LNURL-auth: from full 64-byte seed (same server identity as ldk-node)
         let auth_master_xprv =
-            Xpriv::new_master(Network::Bitcoin, &truncated_seed).map_err(|e| {
+            Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| {
                 VssError::ConnectionError {
                     error_details: format!("Failed to create auth master key: {}", e),
                 }
@@ -265,19 +264,7 @@ impl LdkVssClient {
     /// Lists all raw keys on the server without any deobfuscation.
     /// Diagnostic function to see exactly what keys exist on the server.
     pub async fn list_all_raw_keys(&self) -> Result<Vec<KeyVersion>, VssError> {
-        let request = ListKeyVersionsRequest {
-            store_id: self.store_id.clone(),
-            key_prefix: None,
-            page_size: None,
-            page_token: None,
-        };
-        let results = self
-            .inner
-            .list_key_versions(&request)
-            .await
-            .map_err(|e| convert_error(e, "ldk_list_all_raw_keys"))?
-            .key_versions;
-
+        let results = self.list_all_key_versions_paginated(None).await?;
         Ok(results
             .into_iter()
             .map(|kv| KeyVersion {
@@ -293,25 +280,16 @@ impl LdkVssClient {
         let obfuscated_key = self.key_obfuscator.obfuscate(&key);
         let primary = namespace.primary();
         let secondary = namespace.secondary();
+        let prefix_str = format!("{}#{}", primary, secondary);
 
-        match (primary, secondary) {
-            ("", "") => {
-                // Default namespace: same for V0 and V1
-                format!("default: {}", obfuscated_key)
-            }
-            _ => {
-                let prefix_str = format!("{}#{}", primary, secondary);
+        // V0: plaintext prefix + # + obfuscated key
+        let v0 = format!("{}#{}", prefix_str, obfuscated_key);
 
-                // V0: plaintext prefix + # + obfuscated key
-                let v0 = format!("{}#{}", prefix_str, obfuscated_key);
+        // V1: obfuscated prefix + # + obfuscated key
+        let obfuscated_prefix = self.key_obfuscator.obfuscate(&prefix_str);
+        let v1 = format!("{}#{}", obfuscated_prefix, obfuscated_key);
 
-                // V1: obfuscated prefix + # + obfuscated key
-                let obfuscated_prefix = self.key_obfuscator.obfuscate(&prefix_str);
-                let v1 = format!("{}#{}", obfuscated_prefix, obfuscated_key);
-
-                format!("v0: {}\nv1: {}", v0, v1)
-            }
-        }
+        format!("v0: {}\nv1: {}", v0, v1)
     }
 
     // --- Internal helpers ---
@@ -320,16 +298,10 @@ impl LdkVssClient {
     fn build_key(&self, key: &str, namespace: &LdkNamespace) -> String {
         let primary = namespace.primary();
         let secondary = namespace.secondary();
-
-        match (primary, secondary) {
-            ("", "") => self.key_obfuscator.obfuscate(key),
-            _ => {
-                let prefix = format!("{}#{}", primary, secondary);
-                let obfuscated_prefix = self.key_obfuscator.obfuscate(&prefix);
-                let obfuscated_key = self.key_obfuscator.obfuscate(key);
-                format!("{}#{}", obfuscated_prefix, obfuscated_key)
-            }
-        }
+        let prefix = format!("{}#{}", primary, secondary);
+        let obfuscated_prefix = self.key_obfuscator.obfuscate(&prefix);
+        let obfuscated_key = self.key_obfuscator.obfuscate(key);
+        format!("{}#{}", obfuscated_prefix, obfuscated_key)
     }
 
     /// Builds the obfuscated namespace prefix for server-side filtering.
@@ -357,19 +329,7 @@ impl LdkVssClient {
         &self,
         prefix: Option<String>,
     ) -> Result<Vec<KeyVersion>, VssError> {
-        let request = ListKeyVersionsRequest {
-            store_id: self.store_id.clone(),
-            key_prefix: prefix,
-            page_size: None,
-            page_token: None,
-        };
-        let results = self
-            .inner
-            .list_key_versions(&request)
-            .await
-            .map_err(|e| convert_error(e, "ldk_list_key_versions"))?
-            .key_versions;
-
+        let results = self.list_all_key_versions_paginated(prefix).await?;
         let mut result = Vec::new();
         for kv in results {
             if let Some(original_key) = self.try_deobfuscate(&kv.key) {
@@ -380,5 +340,37 @@ impl LdkVssClient {
             }
         }
         Ok(result)
+    }
+
+    /// Fetches all key versions across pages using pagination.
+    async fn list_all_key_versions_paginated(
+        &self,
+        prefix: Option<String>,
+    ) -> Result<Vec<ExternalKeyValue>, VssError> {
+        let mut all_results = Vec::new();
+        let mut page_token: Option<String> = None;
+
+        loop {
+            let request = ListKeyVersionsRequest {
+                store_id: self.store_id.clone(),
+                key_prefix: prefix.clone(),
+                page_size: Some(100),
+                page_token: page_token.clone(),
+            };
+            let response = self
+                .inner
+                .list_key_versions(&request)
+                .await
+                .map_err(|e| convert_error(e, "ldk_list_paginated"))?;
+
+            all_results.extend(response.key_versions);
+
+            match response.next_page_token {
+                Some(ref token) if !token.is_empty() => page_token = Some(token.clone()),
+                _ => break,
+            }
+        }
+
+        Ok(all_results)
     }
 }
