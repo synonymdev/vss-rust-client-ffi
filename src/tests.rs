@@ -272,6 +272,196 @@ mod tests {
     }
 
     #[test]
+    fn test_ldk_seed_derivation_is_network_independent() {
+        use bitcoin::bip32::{ChildNumber, Xpriv};
+        use bitcoin::secp256k1::Secp256k1;
+        use bitcoin::Network;
+        use bip39::Mnemonic;
+        use std::str::FromStr;
+
+        let mnemonic = Mnemonic::from_str(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+        ).unwrap();
+        let seed = mnemonic.to_seed("");
+        let secp = Secp256k1::new();
+
+        // Our code uses Network::Bitcoin
+        let master_btc = Xpriv::new_master(Network::Bitcoin, &seed).unwrap();
+        let child_btc = master_btc
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+
+        // ldk-node on regtest uses Network::Regtest
+        let master_reg = Xpriv::new_master(Network::Regtest, &seed).unwrap();
+        let child_reg = master_reg
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+
+        // BIP32 key bytes are seed-derived, network only affects serialization
+        assert_eq!(
+            child_btc.private_key.secret_bytes(),
+            child_reg.private_key.secret_bytes()
+        );
+    }
+
+    #[test]
+    fn test_ldk_obfuscation_roundtrip() {
+        use bitcoin::bip32::{ChildNumber, Xpriv};
+        use bitcoin::secp256k1::Secp256k1;
+        use bitcoin::Network;
+        use bip39::Mnemonic;
+        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
+        use std::str::FromStr;
+        use vss_client_ng::util::key_obfuscator::KeyObfuscator;
+
+        let mnemonic = Mnemonic::from_str(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+        ).unwrap();
+        let seed = mnemonic.to_seed("");
+        let secp = Secp256k1::new();
+        let master = Xpriv::new_master(Network::Bitcoin, &seed).unwrap();
+        let child = master
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+        let vss_seed: [u8; 32] = child.private_key.secret_bytes();
+        let (_, obf_master) = derive_data_encryption_and_obfuscation_keys(&vss_seed);
+        let obfuscator = KeyObfuscator::new(obf_master);
+
+        // V0/V1 Default namespace: just obf(key)
+        let obfuscated = obfuscator.obfuscate("network_graph");
+        assert_eq!(
+            obfuscator.deobfuscate(&obfuscated).unwrap(),
+            "network_graph"
+        );
+
+        // V1 with namespace prefix: obf(prefix)#obf(key)
+        let prefix = obfuscator.obfuscate("monitors#");
+        let key = obfuscator.obfuscate("network_graph");
+        let composite = format!("{}#{}", prefix, key);
+        // try_deobfuscate logic: split on last '#', deobfuscate suffix
+        let (_pfx, suffix) = composite.rsplit_once('#').unwrap();
+        assert_eq!(obfuscator.deobfuscate(suffix).unwrap(), "network_graph");
+
+        // V0 with namespace prefix: plaintext_prefix#obf(key)
+        let v0_composite = format!("monitors##{}", obfuscator.obfuscate("network_graph"));
+        let (_pfx2, suffix2) = v0_composite.rsplit_once('#').unwrap();
+        assert_eq!(obfuscator.deobfuscate(suffix2).unwrap(), "network_graph");
+    }
+
+    #[tokio::test]
+    async fn test_ldk_client_creation() {
+        use crate::LdkVssClient;
+
+        let seed = [42u8; 64];
+        let result = LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_ldk_client_debug_obfuscate() {
+        use crate::LdkVssClient;
+
+        let seed = [42u8; 64];
+        let client = LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Default namespace returns single format
+        let default_result = client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Default);
+        assert!(default_result.starts_with("default: "));
+
+        // Namespaced returns V0 and V1 formats
+        let monitors_result = client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Monitors);
+        assert!(monitors_result.contains("v0: "));
+        assert!(monitors_result.contains("v1: "));
+    }
+
+    #[tokio::test]
+    async fn test_ldk_client_default_namespace_matches_ldk_node() {
+        use crate::LdkVssClient;
+
+        let seed = [42u8; 64];
+
+        // Create both clients with same seed
+        let shared_client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let ldk_client = LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // The shared client incorrectly wraps Default namespace with obf("#")#obf(key)
+        // while ldk-node just uses obf(key) for Default ("", "").
+        // The dedicated LDK client correctly matches ldk-node's behavior.
+        let shared_key = shared_client.build_key_ldk("network_graph", &LdkNamespace::Default);
+        let ldk_debug = ldk_client.debug_obfuscate("network_graph".to_string(), &LdkNamespace::Default);
+        let ldk_key = ldk_debug.strip_prefix("default: ").unwrap();
+
+        // The shared client produces a DIFFERENT key than ldk-node for Default namespace
+        assert_ne!(shared_key, ldk_key, "shared client should differ from ldk-node for Default namespace");
+        // The shared client adds a prefix even for Default namespace (bug)
+        assert!(shared_key.contains('#'), "shared client incorrectly adds prefix for Default namespace");
+        // The dedicated LDK client produces a key WITHOUT prefix (correct, matches ldk-node)
+        assert!(!ldk_key.contains('#'), "LDK client should not add prefix for Default namespace");
+    }
+
+    #[tokio::test]
+    async fn test_ldk_client_namespaced_key_matches_shared_client() {
+        use crate::LdkVssClient;
+
+        let seed = [42u8; 64];
+
+        let shared_client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let ldk_client = LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // For non-Default namespaces, both clients use V1 format: obf(prefix)#obf(key)
+        let shared_key = shared_client.build_key_ldk("some_key", &LdkNamespace::Monitors);
+        let ldk_debug = ldk_client.debug_obfuscate("some_key".to_string(), &LdkNamespace::Monitors);
+        let v1_line = ldk_debug.lines().find(|l| l.starts_with("v1: ")).unwrap();
+        let ldk_v1_key = v1_line.strip_prefix("v1: ").unwrap();
+
+        assert_eq!(shared_key, ldk_v1_key, "both clients should produce same V1 key for namespaced entries");
+    }
+
+    #[test]
     fn test_types_creation() {
         use crate::{VssItem, KeyValue, KeyVersion};
 

@@ -1290,6 +1290,125 @@ public func vssGetLdk(key: String, namespace: LdkNamespace) async throws -> VssI
 }
 
 /**
+ * Shows obfuscated key for a given key+namespace (LDK client).
+ * Diagnostic function to compare against raw keys on the server.
+ */
+public func vssLdkDebugObfuscate(key: String, namespace: LdkNamespace) throws -> String {
+    return try FfiConverterString.lift(rustCallWithError(FfiConverterTypeVssError.lift) {
+        uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate(
+            FfiConverterString.lower(key),
+            FfiConverterTypeLdkNamespace.lower(namespace), $0
+        )
+    })
+}
+
+/**
+ * Deletes a key-value pair using the dedicated LDK client.
+ */
+public func vssLdkDelete(key: String, namespace: LdkNamespace) async throws -> Bool {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_ldk_delete(FfiConverterString.lower(key), FfiConverterTypeLdkNamespace.lower(namespace))
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_i8,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_i8,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_i8,
+            liftFunc: FfiConverterBool.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Retrieves a value by key using the dedicated LDK client.
+ */
+public func vssLdkGet(key: String, namespace: LdkNamespace) async throws -> VssItem? {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_ldk_get(FfiConverterString.lower(key), FfiConverterTypeLdkNamespace.lower(namespace))
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionTypeVssItem.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Lists all LDK keys across all namespaces using the dedicated LDK client.
+ */
+public func vssLdkListAllKeys() async throws -> [KeyVersion] {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys(
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Lists all raw keys on the server without deobfuscation (LDK client).
+ * Diagnostic function to see exactly what keys exist on the server.
+ */
+public func vssLdkListAllRawKeys() async throws -> [KeyVersion] {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys(
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Lists keys in a namespace using the dedicated LDK client.
+ */
+public func vssLdkListKeys(namespace: LdkNamespace) async throws -> [KeyVersion] {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_keys(FfiConverterTypeLdkNamespace.lower(namespace)
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Stores a key-value pair using the dedicated LDK client.
+ */
+public func vssLdkStore(key: String, value: Data, namespace: LdkNamespace) async throws -> VssItem {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_ldk_store(FfiConverterString.lower(key), FfiConverterData.lower(value), FfiConverterTypeLdkNamespace.lower(namespace))
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeVssItem.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
  * Lists all items in the store, optionally filtered by key prefix.
  *
  * This function retrieves both keys and their associated values/versions.
@@ -1335,6 +1454,25 @@ public func vssListAllKeysLdk() async throws -> [KeyVersion] {
         try await uniffiRustCallAsync(
             rustFutureFunc: {
                 uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
+ * Lists all raw keys on the server without any deobfuscation (app client).
+ * Diagnostic function to see exactly what keys exist on the server.
+ */
+public func vssListAllRawKeys() async throws -> [KeyVersion] {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys(
                 )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
@@ -1496,6 +1634,26 @@ public func vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic
 }
 
 /**
+ * Creates a new dedicated LDK VSS client with LNURL-auth.
+ *
+ * This client uses ONLY ldk-node's key derivation chain (full 64-byte seed),
+ * completely separate from the app backup client.
+ */
+public func vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String) async throws {
+    return
+        try await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_new_ldk_client_with_lnurl_auth(FfiConverterString.lower(baseUrl), FfiConverterString.lower(storeId), FfiConverterString.lower(mnemonic), FfiConverterOptionString.lower(passphrase), FfiConverterString.lower(lnurlAuthServerUrl))
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_void,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_void,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeVssError.lift
+        )
+}
+
+/**
  * Stores multiple key-value pairs in a single atomic transaction.
  *
  * This function allows batch storage of multiple items. All items will be
@@ -1546,6 +1704,15 @@ public func vssPutWithKeyPrefix(items: [KeyValue]) async throws -> [VssItem] {
  */
 public func vssShutdownClient() { try! rustCall {
     uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client($0
+    )
+}
+}
+
+/**
+ * Shuts down the dedicated LDK VSS client.
+ */
+public func vssShutdownLdkClient() { try! rustCall {
+    uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_ldk_client($0
     )
 }
 }
@@ -1635,10 +1802,34 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 7390 {
         return InitializationResult.apiChecksumMismatch
     }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate() != 6943 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete() != 46664 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get() != 65334 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys() != 17647 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys() != 7329 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys() != 49379 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_store() != 54548 {
+        return InitializationResult.apiChecksumMismatch
+    }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys() != 46633 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638 {
@@ -1656,10 +1847,16 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth() != 13999 {
         return InitializationResult.apiChecksumMismatch
     }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_new_ldk_client_with_lnurl_auth() != 59369 {
+        return InitializationResult.apiChecksumMismatch
+    }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix() != 49391 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client() != 44802 {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_ldk_client() != 20913 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42494 {
