@@ -261,19 +261,6 @@ impl LdkVssClient {
         self.list_key_versions_deobfuscated(None).await
     }
 
-    /// Lists all raw keys on the server without any deobfuscation.
-    /// Diagnostic function to see exactly what keys exist on the server.
-    pub async fn list_all_raw_keys(&self) -> Result<Vec<KeyVersion>, VssError> {
-        let results = self.list_all_key_versions_paginated(None).await?;
-        Ok(results
-            .into_iter()
-            .map(|kv| KeyVersion {
-                key: kv.key,
-                version: kv.version,
-            })
-            .collect())
-    }
-
     // --- Internal helpers ---
 
     /// Builds an obfuscated storage key matching ldk-node's V1 format.

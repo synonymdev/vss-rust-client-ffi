@@ -1290,19 +1290,6 @@ public func vssGetLdk(key: String, namespace: LdkNamespace) async throws -> VssI
 }
 
 /**
- * Shows obfuscated key for a given key+namespace (LDK client).
- * Diagnostic function to compare against raw keys on the server.
- */
-public func vssLdkDebugObfuscate(key: String, namespace: LdkNamespace) throws -> String {
-    return try FfiConverterString.lift(rustCallWithError(FfiConverterTypeVssError.lift) {
-        uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate(
-            FfiConverterString.lower(key),
-            FfiConverterTypeLdkNamespace.lower(namespace), $0
-        )
-    })
-}
-
-/**
  * Deletes a key-value pair using the dedicated LDK client.
  */
 public func vssLdkDelete(key: String, namespace: LdkNamespace) async throws -> Bool {
@@ -1344,25 +1331,6 @@ public func vssLdkListAllKeys() async throws -> [KeyVersion] {
         try await uniffiRustCallAsync(
             rustFutureFunc: {
                 uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys(
-                )
-            },
-            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
-            errorHandler: FfiConverterTypeVssError.lift
-        )
-}
-
-/**
- * Lists all raw keys on the server without deobfuscation (LDK client).
- * Diagnostic function to see exactly what keys exist on the server.
- */
-public func vssLdkListAllRawKeys() async throws -> [KeyVersion] {
-    return
-        try await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys(
                 )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
@@ -1454,25 +1422,6 @@ public func vssListAllKeysLdk() async throws -> [KeyVersion] {
         try await uniffiRustCallAsync(
             rustFutureFunc: {
                 uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(
-                )
-            },
-            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
-            errorHandler: FfiConverterTypeVssError.lift
-        )
-}
-
-/**
- * Lists all raw keys on the server without any deobfuscation (app client).
- * Diagnostic function to see exactly what keys exist on the server.
- */
-public func vssListAllRawKeys() async throws -> [KeyVersion] {
-    return
-        try await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys(
                 )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
@@ -1802,9 +1751,6 @@ private var initializationResult: InitializationResult = {
     if uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 7390 {
         return InitializationResult.apiChecksumMismatch
     }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate() != 6943 {
-        return InitializationResult.apiChecksumMismatch
-    }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete() != 46664 {
         return InitializationResult.apiChecksumMismatch
     }
@@ -1812,9 +1758,6 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys() != 17647 {
-        return InitializationResult.apiChecksumMismatch
-    }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys() != 7329 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys() != 49379 {
@@ -1827,9 +1770,6 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461 {
-        return InitializationResult.apiChecksumMismatch
-    }
-    if uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys() != 46633 {
         return InitializationResult.apiChecksumMismatch
     }
     if uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638 {
