@@ -804,8 +804,6 @@ internal interface UniffiLib : Library {
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys(): Long
 
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys(): Long
-
     fun uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_keys(`namespace`: RustBuffer.ByValue): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_ldk_store(
@@ -817,8 +815,6 @@ internal interface UniffiLib : Library {
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list(`prefix`: RustBuffer.ByValue): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(): Long
-
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys(): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(`prefix`: RustBuffer.ByValue): Long
 
@@ -1096,8 +1092,6 @@ internal interface UniffiLib : Library {
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys(): Short
 
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys(): Short
-
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys(): Short
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_store(): Short
@@ -1105,8 +1099,6 @@ internal interface UniffiLib : Library {
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_list(): Short
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys(): Short
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys(): Short
 
@@ -1169,9 +1161,6 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys() != 17647.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys() != 7329.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys() != 49379.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1182,9 +1171,6 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys() != 46633.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638.toShort()) {
@@ -2389,30 +2375,6 @@ suspend fun `vssLdkListAllKeys`(): List<KeyVersion> =
     )
 
 /**
- * Lists all raw keys on the server without deobfuscation (LDK client).
- * Diagnostic function to see exactly what keys exist on the server.
- */
-@Throws(VssException::class)
-@Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-suspend fun `vssLdkListAllRawKeys`(): List<KeyVersion> =
-    uniffiRustCallAsync(
-        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys(),
-        {
-            future,
-            callback,
-            continuation,
-            ->
-            UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer(future, callback, continuation)
-        },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer(future) },
-        // lift function
-        { FfiConverterSequenceTypeKeyVersion.lift(it) },
-        // Error FFI converter
-        VssException.ErrorHandler,
-    )
-
-/**
  * Lists keys in a namespace using the dedicated LDK client.
  */
 @Throws(VssException::class)
@@ -2517,30 +2479,6 @@ suspend fun `vssList`(`prefix`: kotlin.String?): List<VssItem> =
 suspend fun `vssListAllKeysLdk`(): List<KeyVersion> =
     uniffiRustCallAsync(
         UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(),
-        {
-            future,
-            callback,
-            continuation,
-            ->
-            UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer(future, callback, continuation)
-        },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer(future) },
-        // lift function
-        { FfiConverterSequenceTypeKeyVersion.lift(it) },
-        // Error FFI converter
-        VssException.ErrorHandler,
-    )
-
-/**
- * Lists all raw keys on the server without any deobfuscation (app client).
- * Diagnostic function to see exactly what keys exist on the server.
- */
-@Throws(VssException::class)
-@Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-suspend fun `vssListAllRawKeys`(): List<KeyVersion> =
-    uniffiRustCallAsync(
-        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys(),
         {
             future,
             callback,

@@ -452,15 +452,6 @@ pub fn vss_shutdown_client() {
     }
 }
 
-/// Lists all raw keys on the server without any deobfuscation (app client).
-/// Diagnostic function to see exactly what keys exist on the server.
-#[uniffi::export]
-pub async fn vss_list_all_raw_keys() -> Result<Vec<KeyVersion>, VssError> {
-    execute_async!(async move {
-        let client = try_get_client()?;
-        client.list_all_raw_keys().await
-    })
-}
 
 // --- Dedicated LDK client ---
 
@@ -580,13 +571,4 @@ pub async fn vss_ldk_list_all_keys() -> Result<Vec<KeyVersion>, VssError> {
     })
 }
 
-/// Lists all raw keys on the server without deobfuscation (LDK client).
-/// Diagnostic function to see exactly what keys exist on the server.
-#[uniffi::export]
-pub async fn vss_ldk_list_all_raw_keys() -> Result<Vec<KeyVersion>, VssError> {
-    execute_async!(async move {
-        let client = try_get_ldk_client()?;
-        client.list_all_raw_keys().await
-    })
-}
 

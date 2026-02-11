@@ -513,19 +513,6 @@ impl VssClient {
         self.list_key_versions(None, &self.ldk_key_obfuscator).await
     }
 
-    /// Lists all raw keys on the server without any deobfuscation.
-    /// Diagnostic function to see exactly what keys exist on the server.
-    pub async fn list_all_raw_keys(&self) -> Result<Vec<KeyVersion>, VssError> {
-        let results = self.list_all_key_versions_paginated(None).await?;
-        Ok(results
-            .into_iter()
-            .map(|kv| KeyVersion {
-                key: kv.key,
-                version: kv.version,
-            })
-            .collect())
-    }
-
     // --- Key obfuscation helpers ---
 
     /// Builds an obfuscated storage key using the given obfuscator.

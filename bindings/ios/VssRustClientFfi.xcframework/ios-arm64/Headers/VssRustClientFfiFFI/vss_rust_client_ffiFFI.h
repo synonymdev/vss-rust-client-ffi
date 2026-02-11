@@ -276,11 +276,6 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get(RustBuffer key
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(RustBuffer key, RustBuffer namespace
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_DEBUG_OBFUSCATE
-#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_DEBUG_OBFUSCATE
-RustBuffer uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate(RustBuffer key, RustBuffer namespace, RustCallStatus *_Nonnull out_status
-);
-#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_DELETE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_DELETE
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_ldk_delete(RustBuffer key, RustBuffer namespace
@@ -294,12 +289,6 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_ldk_get(RustBuffer key, RustBuff
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_LIST_ALL_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_LIST_ALL_KEYS
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys(void
-    
-);
-#endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_LIST_ALL_RAW_KEYS
-#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_LIST_ALL_RAW_KEYS
-uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys(void
     
 );
 #endif
@@ -321,12 +310,6 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list(RustBuffer prefix
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_ALL_KEYS_LDK
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_ALL_KEYS_LDK
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(void
-    
-);
-#endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_ALL_RAW_KEYS
-#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_ALL_RAW_KEYS
-uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys(void
     
 );
 #endif
@@ -697,12 +680,6 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk(void
     
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_DEBUG_OBFUSCATE
-#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_DEBUG_OBFUSCATE
-uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate(void
-    
-);
-#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_DELETE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_DELETE
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete(void
@@ -718,12 +695,6 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_ALL_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_ALL_KEYS
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys(void
-    
-);
-#endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_ALL_RAW_KEYS
-#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_ALL_RAW_KEYS
-uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys(void
     
 );
 #endif
@@ -748,12 +719,6 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_ALL_KEYS_LDK
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_ALL_KEYS_LDK
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk(void
-    
-);
-#endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_ALL_RAW_KEYS
-#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_ALL_RAW_KEYS
-uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys(void
     
 );
 #endif

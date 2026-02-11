@@ -471,15 +471,11 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk() != 7390:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate() != 6943:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete() != 46664:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get() != 65334:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys() != 17647:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys() != 7329:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys() != 49379:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -488,8 +484,6 @@ def _uniffi_check_api_checksums(lib):
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461:
-        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys() != 46633:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -644,12 +638,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate.argtypes = (
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-    ctypes.POINTER(_UniffiRustCallStatus),
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_delete.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -663,9 +651,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_get.restype = ctypes.c_uin
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_keys.argtypes = (
     _UniffiRustBuffer,
 )
@@ -683,9 +668,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk.restype = ctypes.c_uint64
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys.argtypes = (
     _UniffiRustBuffer,
 )
@@ -1025,9 +1007,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get.restype = ctypes.c_u
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_debug_obfuscate.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete.restype = ctypes.c_uint16
@@ -1037,9 +1016,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get.restype = ctypes
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_raw_keys.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys.restype = ctypes.c_uint16
@@ -1052,9 +1028,6 @@ _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list.restype = ctypes.c_
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk.restype = ctypes.c_uint16
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys.argtypes = (
-)
-_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_raw_keys.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys.restype = ctypes.c_uint16
@@ -2090,21 +2063,6 @@ async def vss_get_ldk(key: "str",namespace: "LdkNamespace") -> "typing.Optional[
 _UniffiConverterTypeVssError,
 
     )
-
-def vss_ldk_debug_obfuscate(key: "str",namespace: "LdkNamespace") -> "str":
-    """
-    Shows obfuscated key for a given key+namespace (LDK client).
-    Diagnostic function to compare against raw keys on the server.
-    """
-
-    _UniffiConverterString.check_lower(key)
-    
-    _UniffiConverterTypeLdkNamespace.check_lower(namespace)
-    
-    return _UniffiConverterString.lift(_uniffi_rust_call_with_error(_UniffiConverterTypeVssError,_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_debug_obfuscate,
-        _UniffiConverterString.lower(key),
-        _UniffiConverterTypeLdkNamespace.lower(namespace)))
-
 async def vss_ldk_delete(key: "str",namespace: "LdkNamespace") -> "bool":
 
     """
@@ -2161,25 +2119,6 @@ async def vss_ldk_list_all_keys() -> "typing.List[KeyVersion]":
 
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys(),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-        # lift function
-        _UniffiConverterSequenceTypeKeyVersion.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
-async def vss_ldk_list_all_raw_keys() -> "typing.List[KeyVersion]":
-
-    """
-    Lists all raw keys on the server without deobfuscation (LDK client).
-    Diagnostic function to see exactly what keys exist on the server.
-    """
-
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_raw_keys(),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
@@ -2287,25 +2226,6 @@ async def vss_list_all_keys_ldk() -> "typing.List[KeyVersion]":
 
     return await _uniffi_rust_call_async(
         _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(),
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
-        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
-        # lift function
-        _UniffiConverterSequenceTypeKeyVersion.lift,
-        
-    # Error FFI converter
-_UniffiConverterTypeVssError,
-
-    )
-async def vss_list_all_raw_keys() -> "typing.List[KeyVersion]":
-
-    """
-    Lists all raw keys on the server without any deobfuscation (app client).
-    Diagnostic function to see exactly what keys exist on the server.
-    """
-
-    return await _uniffi_rust_call_async(
-        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_raw_keys(),
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
         _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
@@ -2688,16 +2608,13 @@ __all__ = [
     "vss_derive_store_id",
     "vss_get",
     "vss_get_ldk",
-    "vss_ldk_debug_obfuscate",
     "vss_ldk_delete",
     "vss_ldk_get",
     "vss_ldk_list_all_keys",
-    "vss_ldk_list_all_raw_keys",
     "vss_ldk_list_keys",
     "vss_ldk_store",
     "vss_list",
     "vss_list_all_keys_ldk",
-    "vss_list_all_raw_keys",
     "vss_list_keys",
     "vss_list_keys_ldk",
     "vss_list_ldk",
