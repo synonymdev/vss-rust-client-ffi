@@ -485,7 +485,7 @@ impl VssClient {
         &self,
         namespace: &LdkNamespace,
     ) -> Result<Vec<KeyVersion>, VssError> {
-        let prefix = Some(self.build_key_ldk("", namespace));
+        let prefix = Some(self.build_prefix_ldk(namespace));
         self.list_key_versions(prefix, &self.ldk_key_obfuscator).await
     }
 
@@ -502,6 +502,21 @@ impl VssClient {
             }
         }
         Ok(items)
+    }
+
+    /// Lists all keys across all singleton LDK namespaces.
+    pub async fn list_all_keys_ldk(&self) -> Result<Vec<KeyVersion>, VssError> {
+        let namespaces = [
+            LdkNamespace::Default,
+            LdkNamespace::Monitors,
+            LdkNamespace::ArchivedMonitors,
+        ];
+        let mut all_keys = Vec::new();
+        for ns in &namespaces {
+            let keys = self.list_keys_ldk(ns).await?;
+            all_keys.extend(keys);
+        }
+        Ok(all_keys)
     }
 
     // --- Key obfuscation helpers ---
@@ -568,6 +583,16 @@ impl VssClient {
             Self::obfuscate_key(obfuscator, key, Some(namespace.primary()), Some(namespace.secondary()))
         } else {
             key.to_string()
+        }
+    }
+
+    /// Builds the obfuscated namespace prefix for listing ldk keys.
+    pub(crate) fn build_prefix_ldk(&self, namespace: &LdkNamespace) -> String {
+        if let Some(ref obfuscator) = self.ldk_key_obfuscator {
+            let prefix = format!("{}#{}", namespace.primary(), namespace.secondary());
+            obfuscator.obfuscate(&prefix)
+        } else {
+            format!("{}#{}", namespace.primary(), namespace.secondary())
         }
     }
 

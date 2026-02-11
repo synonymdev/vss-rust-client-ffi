@@ -473,6 +473,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk() != 41363:
@@ -626,6 +628,9 @@ _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list.restype = ctypes.c_uint64
+_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk.argtypes = (
+)
+_UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk.restype = ctypes.c_uint64
 _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys.argtypes = (
     _UniffiRustBuffer,
 )
@@ -956,6 +961,9 @@ _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk.restype = ctypes
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list.restype = ctypes.c_uint16
+_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk.argtypes = (
+)
+_UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk.restype = ctypes.c_uint16
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys.argtypes = (
 )
 _UniffiLib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys.restype = ctypes.c_uint16
@@ -2026,6 +2034,24 @@ async def vss_list(prefix: "typing.Optional[str]") -> "typing.List[VssItem]":
 _UniffiConverterTypeVssError,
 
     )
+async def vss_list_all_keys_ldk() -> "typing.List[KeyVersion]":
+
+    """
+    Lists all keys across all singleton LDK namespaces.
+    """
+
+    return await _uniffi_rust_call_async(
+        _UniffiLib.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(),
+        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+        _UniffiLib.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+        # lift function
+        _UniffiConverterSequenceTypeKeyVersion.lift,
+        
+    # Error FFI converter
+_UniffiConverterTypeVssError,
+
+    )
 async def vss_list_keys(prefix: "typing.Optional[str]") -> "typing.List[KeyVersion]":
 
     """
@@ -2354,6 +2380,7 @@ __all__ = [
     "vss_get",
     "vss_get_ldk",
     "vss_list",
+    "vss_list_all_keys_ldk",
     "vss_list_keys",
     "vss_list_keys_ldk",
     "vss_list_ldk",

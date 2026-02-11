@@ -281,6 +281,12 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_get_ldk(RustBuffer key, RustBuff
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list(RustBuffer prefix
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_ALL_KEYS_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_ALL_KEYS_LDK
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LIST_KEYS
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(RustBuffer prefix
@@ -640,6 +646,12 @@ uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_get_ldk(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_ALL_KEYS_LDK
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_ALL_KEYS_LDK
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk(void
     
 );
 #endif

@@ -794,6 +794,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list(`prefix`: RustBuffer.ByValue): Long
 
+    fun uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(): Long
+
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(`prefix`: RustBuffer.ByValue): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_list_keys_ldk(`namespace`: RustBuffer.ByValue): Long
@@ -1056,6 +1058,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_list(): Short
 
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk(): Short
+
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys(): Short
 
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys_ldk(): Short
@@ -1105,6 +1109,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list() != 27842.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_all_keys_ldk() != 6461.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638.toShort()) {
@@ -2260,6 +2267,29 @@ suspend fun `vssList`(`prefix`: kotlin.String?): List<VssItem> =
         { future -> UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer(future) },
         // lift function
         { FfiConverterSequenceTypeVssItem.lift(it) },
+        // Error FFI converter
+        VssException.ErrorHandler,
+    )
+
+/**
+ * Lists all keys across all singleton LDK namespaces.
+ */
+@Throws(VssException::class)
+@Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+suspend fun `vssListAllKeysLdk`(): List<KeyVersion> =
+    uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_all_keys_ldk(),
+        {
+            future,
+            callback,
+            continuation,
+            ->
+            UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer(future, callback, continuation)
+        },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterSequenceTypeKeyVersion.lift(it) },
         // Error FFI converter
         VssException.ErrorHandler,
     )

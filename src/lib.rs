@@ -391,6 +391,15 @@ pub async fn vss_list_ldk(
     })
 }
 
+/// Lists all keys across all singleton LDK namespaces.
+#[uniffi::export]
+pub async fn vss_list_all_keys_ldk() -> Result<Vec<KeyVersion>, VssError> {
+    execute_async!(async move {
+        let client = try_get_client()?;
+        client.list_all_keys_ldk().await
+    })
+}
+
 /// Derives a deterministic VSS store ID from a mnemonic and optional passphrase.
 ///
 /// This function creates a consistent store ID that can be used across devices for the same wallet.
