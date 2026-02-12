@@ -21,15 +21,14 @@ rm -rf "$PACKAGE_DIR"/*
 echo "Building Rust libraries..."
 cargo build
 
-# Modify Cargo.toml to ensure correct crate type
-echo "Updating Cargo.toml..."
+# Temporarily set crate-type for Python (restored at end)
+cp Cargo.toml Cargo.toml.bak
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
     sed -i '' 's/crate_type = .*/crate_type = ["cdylib"]/' Cargo.toml
 else
-    # Linux and others
     sed -i 's/crate_type = .*/crate_type = ["cdylib"]/' Cargo.toml
 fi
+trap 'mv Cargo.toml.bak Cargo.toml' EXIT
 
 # Build release
 echo "Building release version..."

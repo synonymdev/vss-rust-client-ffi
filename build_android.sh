@@ -22,9 +22,10 @@ rm -rf "$JNILIBS_DIR"/*
 echo "Building Rust libraries..."
 cargo build
 
-# Modify Cargo.toml
-echo "Updating Cargo.toml..."
+# Temporarily set crate-type for Android (restored at end)
+cp Cargo.toml Cargo.toml.bak
 sed -i '' 's/crate-type = .*/crate-type = ["cdylib"]/' Cargo.toml
+trap 'mv Cargo.toml.bak Cargo.toml' EXIT
 
 # Build release
 echo "Building release version..."

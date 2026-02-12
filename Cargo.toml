@@ -1,11 +1,11 @@
 [package]
 name = "vss-rust-client-ffi"
-version = "0.4.0"
+version = "0.5.12"
 edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "staticlib"]
 name = "vss_rust_client_ffi"
 
 

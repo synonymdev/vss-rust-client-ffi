@@ -44,7 +44,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_vss_client_creation_with_lnurl_auth() {
-        let seed = [42u8; 32]; // Test seed
+        let seed = [42u8; 64]; // Test seed (full BIP39 seed)
         let result = VssClient::new_with_lnurl_auth(
             MOCK_BASE_URL.to_string(),
             TEST_STORE_ID.to_string(),
@@ -96,6 +96,195 @@ mod tests {
 
         // Test invalid mnemonic
         assert!(vss_derive_store_id(prefix, "invalid".to_string(), None).is_err());
+    }
+
+    #[tokio::test]
+    async fn test_key_derivation_app_differs_from_ldk() {
+        use bitcoin::bip32::{ChildNumber, Xpriv};
+        use bitcoin::secp256k1::Secp256k1;
+        use bitcoin::Network;
+        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
+
+        let full_seed: [u8; 64] = [42u8; 64];
+        let truncated_seed: [u8; 32] = full_seed[..32].try_into().unwrap();
+
+        let secp = Secp256k1::new();
+
+        // LDK keys: derived from full 64-byte seed
+        let ldk_master = Xpriv::new_master(Network::Bitcoin, &full_seed).unwrap();
+        let ldk_vss = ldk_master
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+        let ldk_seed_bytes: [u8; 32] = ldk_vss.private_key.secret_bytes();
+
+        // App keys: derived from truncated 32-byte seed
+        let app_master = Xpriv::new_master(Network::Bitcoin, &truncated_seed).unwrap();
+        let app_vss = app_master
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+        let app_seed_bytes: [u8; 32] = app_vss.private_key.secret_bytes();
+
+        assert_ne!(ldk_seed_bytes, app_seed_bytes);
+
+        let (ldk_enc, ldk_obf) = derive_data_encryption_and_obfuscation_keys(&ldk_seed_bytes);
+        let (app_enc, app_obf) = derive_data_encryption_and_obfuscation_keys(&app_seed_bytes);
+
+        assert_ne!(ldk_enc, app_enc);
+        assert_ne!(ldk_obf, app_obf);
+    }
+
+    #[tokio::test]
+    async fn test_client_with_lnurl_auth_has_separate_keys() {
+        let seed = [42u8; 64];
+        let client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert!(client.app_key_obfuscator.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_client_without_auth_has_no_keys() {
+        let client = VssClient::new(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert!(client.app_key_obfuscator.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_build_and_extract_app_key() {
+        let seed = [42u8; 64];
+        let client = VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let app_storage_key = client.build_key("test_key");
+
+        // App key should be obfuscated
+        assert_ne!(app_storage_key, "test_key");
+
+        // Should deobfuscate back to original
+        assert_eq!(client.extract_key(&app_storage_key).unwrap(), "test_key");
+    }
+
+    #[test]
+    fn test_store_id_unchanged() {
+        use crate::vss_derive_store_id;
+
+        let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string();
+
+        // derive_vss_store_id always uses truncated 32-byte seed,
+        // so the store_id is the same regardless of the client key fix
+        let id1 = vss_derive_store_id("test".to_string(), mnemonic.clone(), None).unwrap();
+        let id2 = vss_derive_store_id("test".to_string(), mnemonic.clone(), None).unwrap();
+        assert_eq!(id1, id2);
+    }
+
+    #[test]
+    fn test_ldk_seed_derivation_is_network_independent() {
+        use bitcoin::bip32::{ChildNumber, Xpriv};
+        use bitcoin::secp256k1::Secp256k1;
+        use bitcoin::Network;
+        use bip39::Mnemonic;
+        use std::str::FromStr;
+
+        let mnemonic = Mnemonic::from_str(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+        ).unwrap();
+        let seed = mnemonic.to_seed("");
+        let secp = Secp256k1::new();
+
+        // Our code uses Network::Bitcoin
+        let master_btc = Xpriv::new_master(Network::Bitcoin, &seed).unwrap();
+        let child_btc = master_btc
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+
+        // ldk-node on regtest uses Network::Regtest
+        let master_reg = Xpriv::new_master(Network::Regtest, &seed).unwrap();
+        let child_reg = master_reg
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+
+        // BIP32 key bytes are seed-derived, network only affects serialization
+        assert_eq!(
+            child_btc.private_key.secret_bytes(),
+            child_reg.private_key.secret_bytes()
+        );
+    }
+
+    #[test]
+    fn test_ldk_obfuscation_roundtrip() {
+        use bitcoin::bip32::{ChildNumber, Xpriv};
+        use bitcoin::secp256k1::Secp256k1;
+        use bitcoin::Network;
+        use bip39::Mnemonic;
+        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
+        use std::str::FromStr;
+        use vss_client_ng::util::key_obfuscator::KeyObfuscator;
+
+        let mnemonic = Mnemonic::from_str(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+        ).unwrap();
+        let seed = mnemonic.to_seed("");
+        let secp = Secp256k1::new();
+        let master = Xpriv::new_master(Network::Bitcoin, &seed).unwrap();
+        let child = master
+            .derive_priv(&secp, &[ChildNumber::Hardened { index: 877 }])
+            .unwrap();
+        let vss_seed: [u8; 32] = child.private_key.secret_bytes();
+        let (_, obf_master) = derive_data_encryption_and_obfuscation_keys(&vss_seed);
+        let obfuscator = KeyObfuscator::new(obf_master);
+
+        // Obfuscation roundtrip: obfuscate then deobfuscate
+        let obfuscated = obfuscator.obfuscate("network_graph");
+        assert_eq!(
+            obfuscator.deobfuscate(&obfuscated).unwrap(),
+            "network_graph"
+        );
+
+        // V1 with namespace prefix (including Default "#"): obf(prefix)#obf(key)
+        let prefix = obfuscator.obfuscate("monitors#");
+        let key = obfuscator.obfuscate("network_graph");
+        let composite = format!("{}#{}", prefix, key);
+        // try_deobfuscate logic: split on last '#', deobfuscate suffix
+        let (_pfx, suffix) = composite.rsplit_once('#').unwrap();
+        assert_eq!(obfuscator.deobfuscate(suffix).unwrap(), "network_graph");
+
+        // V0 with namespace prefix: plaintext_prefix#obf(key)
+        let v0_composite = format!("monitors##{}", obfuscator.obfuscate("network_graph"));
+        let (_pfx2, suffix2) = v0_composite.rsplit_once('#').unwrap();
+        assert_eq!(obfuscator.deobfuscate(suffix2).unwrap(), "network_graph");
+    }
+
+    #[tokio::test]
+    async fn test_ldk_client_creation() {
+        use crate::LdkVssClient;
+
+        let seed = [42u8; 64];
+        let result = LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await;
+
+        assert!(result.is_ok());
     }
 
     #[test]

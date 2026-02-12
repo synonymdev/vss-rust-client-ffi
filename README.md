@@ -15,6 +15,9 @@ Cross-platform FFI bindings for the [VSS (Versioned Storage Service) Rust Client
 # Basic build
 cargo build --release
 
+# Generate ALL bindings
+./build.sh all
+
 # Generate Swift bindings for iOS
 ./build_ios.sh
 
@@ -75,6 +78,45 @@ print("Deleted: \(wasDeleted)")
 vssShutdownClient()
 ```
 
+#### Dedicated LDK Client (Swift)
+
+For fully isolated LDK operations with independent key derivation (full 64-byte BIP39 seed):
+
+```swift
+// Initialize the dedicated LDK client (separate from the app client)
+try await vssNewLdkClientWithLnurlAuth(
+    baseUrl: "https://vss.example.com",
+    storeId: storeId,
+    mnemonic: mnemonic,
+    passphrase: passphrase,
+    lnurlAuthServerUrl: "https://auth.example.com/lnurl"
+)
+
+// Read an ldk-node key
+if let item = try await vssLdkGet(key: "network_graph", namespace: .default) {
+    print("Graph size: \(item.value.count) bytes")
+}
+
+// Store a key
+let item = try await vssLdkStore(
+    key: "network_graph",
+    value: graphData,
+    namespace: .default
+)
+
+// Delete a key
+let wasDeleted = try await vssLdkDelete(key: "network_graph", namespace: .default)
+
+// List keys in a namespace
+let keys = try await vssLdkListKeys(namespace: .monitors)
+
+// List all keys across all namespaces
+let allKeys = try await vssLdkListAllKeys()
+
+// Clean shutdown
+vssShutdownLdkClient()
+```
+
 ### Python
 
 ```python
@@ -126,6 +168,37 @@ print(f"Deleted: {was_deleted}")
 vss_shutdown_client()
 ```
 
+#### Dedicated LDK Client (Python)
+
+```python
+# Initialize the dedicated LDK client (separate from the app client)
+await vss_new_ldk_client_with_lnurl_auth(
+    "https://vss.example.com",
+    store_id,
+    mnemonic,
+    passphrase,
+    "https://auth.example.com/lnurl"
+)
+
+# Read an ldk-node key
+item = await vss_ldk_get("network_graph", LdkNamespace.DEFAULT)
+
+# Store a key
+item = await vss_ldk_store("network_graph", graph_data, LdkNamespace.DEFAULT)
+
+# Delete a key
+was_deleted = await vss_ldk_delete("network_graph", LdkNamespace.DEFAULT)
+
+# List keys in a namespace
+keys = await vss_ldk_list_keys(LdkNamespace.MONITORS)
+
+# List all keys across all namespaces
+all_keys = await vss_ldk_list_all_keys()
+
+# Clean shutdown
+vss_shutdown_ldk_client()
+```
+
 ### Kotlin (Android)
 
 ```kotlin
@@ -168,6 +241,42 @@ items.forEach { item ->
 
 // Clean shutdown (optional)
 vssShutdownClient()
+```
+
+#### Dedicated LDK Client (Kotlin)
+
+```kotlin
+// Initialize the dedicated LDK client (separate from the app client)
+vssNewLdkClientWithLnurlAuth(
+    baseUrl = "https://vss.example.com",
+    storeId = storeId,
+    mnemonic = mnemonic,
+    passphrase = passphrase,
+    lnurlAuthServerUrl = "https://auth.example.com/lnurl"
+)
+
+// Read an ldk-node key
+val item = vssLdkGet(key = "network_graph", namespace = LdkNamespace.Default)
+item?.let { println("Graph size: ${it.value.size} bytes") }
+
+// Store a key
+val stored = vssLdkStore(
+    key = "network_graph",
+    value = graphData,
+    namespace = LdkNamespace.Default
+)
+
+// Delete a key
+val wasDeleted = vssLdkDelete(key = "network_graph", namespace = LdkNamespace.Default)
+
+// List keys in a namespace
+val keys = vssLdkListKeys(namespace = LdkNamespace.Monitors)
+
+// List all keys across all namespaces
+val allKeys = vssLdkListAllKeys()
+
+// Clean shutdown
+vssShutdownLdkClient()
 ```
 
 ## API Reference
@@ -221,6 +330,31 @@ Store multiple items in a single atomic transaction. The server manages versioni
 #### `vssDelete(key: String) -> Bool`
 Delete an item. Returns `true` if item existed and was deleted.
 
+### Dedicated LDK Client
+
+A fully separate client (`LdkVssClient`) with its own key derivation using the full 64-byte BIP39 seed, independent from the app backup client. Use this when LDK operations must be completely isolated from app backup operations.
+
+#### `vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String) -> Void`
+Initialize the dedicated LDK client with LNURL-auth authentication. This client is fully separate from the app client initialized with `vssNewClientWithLnurlAuth`.
+
+#### `vssShutdownLdkClient() -> Void`
+Shutdown the dedicated LDK client and clean up resources.
+
+#### `vssLdkStore(key: String, value: Data, namespace: LdkNamespace) -> VssItem`
+Store a key-value pair using the dedicated LDK client.
+
+#### `vssLdkGet(key: String, namespace: LdkNamespace) -> VssItem?`
+Retrieve an item by key using the dedicated LDK client. Returns `null` if not found.
+
+#### `vssLdkDelete(key: String, namespace: LdkNamespace) -> Bool`
+Delete an item using the dedicated LDK client. Returns `true` if item existed and was deleted.
+
+#### `vssLdkListKeys(namespace: LdkNamespace) -> [KeyVersion]`
+List keys in a namespace using the dedicated LDK client.
+
+#### `vssLdkListAllKeys() -> [KeyVersion]`
+List all keys across all singleton LDK namespaces using the dedicated LDK client.
+
 ### Data Types
 
 #### `VssItem`
@@ -235,6 +369,12 @@ Delete an item. Returns `true` if item existed and was deleted.
 #### `KeyVersion`
 - `key: String` - The item key
 - `version: Int64` - Version number
+
+#### `LdkNamespace`
+- `Default` - Default namespace (channel_manager, scorer, etc.)
+- `Monitors` - Channel monitors
+- `MonitorUpdates(monitorId)` - Updates for a specific monitor
+- `ArchivedMonitors` - Archived channel monitors
 
 #### `VssError`
 Error enum with detailed error information for different failure scenarios.
@@ -300,8 +440,6 @@ cargo run --bin uniffi-bindgen generate \
     --language swift \
     --out-dir ./test_bindings
 ```
-
-For detailed testing information including integration tests, see [TESTING.md](TESTING.md).
 
 ## Architecture
 
