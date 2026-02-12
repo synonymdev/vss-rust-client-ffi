@@ -2,11 +2,13 @@ mod errors;
 #[cfg(test)]
 mod ffi_tests;
 mod implementation;
+mod ldk_client;
 mod tests;
 mod types;
 
 pub use errors::*;
 pub use implementation::{VssClient, derive_vss_store_id};
+pub use ldk_client::LdkVssClient;
 pub use types::*;
 
 uniffi::setup_scaffolding!();
@@ -19,6 +21,7 @@ use tokio::runtime::Runtime;
 
 static RUNTIME: OnceCell<Runtime> = OnceCell::new();
 static VSS_CLIENT: OnceCell<Arc<Mutex<Option<VssClient>>>> = OnceCell::new();
+static LDK_CLIENT: OnceCell<Arc<Mutex<Option<LdkVssClient>>>> = OnceCell::new();
 
 // Helper macro to handle async execution in both test and production environments
 macro_rules! execute_async {
@@ -133,15 +136,9 @@ pub async fn vss_new_client_with_lnurl_auth(
             Some(passphrase) => mnemonic.to_seed(&passphrase),
             None => mnemonic.to_seed(""),
         };
-        let seed_array: [u8; 32] =
-            seed[..32]
-                .try_into()
-                .map_err(|_| VssError::ConnectionError {
-                    error_details: "Failed to extract seed from mnemonic".to_string(),
-                })?;
 
         let client =
-            VssClient::new_with_lnurl_auth(base_url, store_id, seed_array, lnurl_auth_server_url)
+            VssClient::new_with_lnurl_auth(base_url, store_id, seed, lnurl_auth_server_url)
                 .await?;
 
         let storage = get_vss_client();
@@ -386,3 +383,124 @@ pub fn vss_shutdown_client() {
         *guard = None;
     }
 }
+
+
+// --- Dedicated LDK client ---
+
+fn get_ldk_client() -> &'static Arc<Mutex<Option<LdkVssClient>>> {
+    LDK_CLIENT.get_or_init(|| Arc::new(Mutex::new(None)))
+}
+
+fn try_get_ldk_client() -> Result<LdkVssClient, VssError> {
+    let storage = get_ldk_client();
+    let guard = storage.lock().unwrap();
+    guard
+        .as_ref()
+        .ok_or(VssError::ConnectionError {
+            error_details: "LDK VSS client not initialized. Call vss_new_ldk_client_with_lnurl_auth() first.".to_string(),
+        })
+        .cloned()
+}
+
+/// Creates a new dedicated LDK VSS client with LNURL-auth.
+///
+/// This client uses ONLY ldk-node's key derivation chain (full 64-byte seed),
+/// completely separate from the app backup client.
+#[uniffi::export]
+pub async fn vss_new_ldk_client_with_lnurl_auth(
+    base_url: String,
+    store_id: String,
+    mnemonic: String,
+    passphrase: Option<String>,
+    lnurl_auth_server_url: String,
+) -> Result<(), VssError> {
+    execute_async!(async move {
+        let mnemonic = Mnemonic::from_str(&mnemonic).map_err(|e| VssError::ConnectionError {
+            error_details: format!("Invalid mnemonic: {}", e),
+        })?;
+
+        let seed = match passphrase {
+            Some(passphrase) => mnemonic.to_seed(&passphrase),
+            None => mnemonic.to_seed(""),
+        };
+
+        let client =
+            LdkVssClient::new_with_lnurl_auth(base_url, store_id, seed, lnurl_auth_server_url)
+                .await?;
+
+        let storage = get_ldk_client();
+        let mut guard = storage.lock().unwrap();
+        *guard = Some(client);
+        drop(guard);
+
+        Ok(())
+    })
+}
+
+/// Shuts down the dedicated LDK VSS client.
+#[uniffi::export]
+pub fn vss_shutdown_ldk_client() {
+    if let Some(client_storage) = LDK_CLIENT.get() {
+        let mut guard = client_storage.lock().unwrap();
+        *guard = None;
+    }
+}
+
+/// Retrieves a value by key using the dedicated LDK client.
+#[uniffi::export]
+pub async fn vss_ldk_get(
+    key: String,
+    namespace: LdkNamespace,
+) -> Result<Option<VssItem>, VssError> {
+    execute_async!(async move {
+        let client = try_get_ldk_client()?;
+        client.get(key, &namespace).await
+    })
+}
+
+/// Stores a key-value pair using the dedicated LDK client.
+#[uniffi::export]
+pub async fn vss_ldk_store(
+    key: String,
+    value: Vec<u8>,
+    namespace: LdkNamespace,
+) -> Result<VssItem, VssError> {
+    execute_async!(async move {
+        let client = try_get_ldk_client()?;
+        client.store(key, value, &namespace).await
+    })
+}
+
+/// Deletes a key-value pair using the dedicated LDK client.
+#[uniffi::export]
+pub async fn vss_ldk_delete(
+    key: String,
+    namespace: LdkNamespace,
+) -> Result<bool, VssError> {
+    execute_async!(async move {
+        let client = try_get_ldk_client()?;
+        client.delete(key, &namespace).await
+    })
+}
+
+/// Lists keys in a namespace using the dedicated LDK client.
+#[uniffi::export]
+pub async fn vss_ldk_list_keys(
+    namespace: LdkNamespace,
+) -> Result<Vec<KeyVersion>, VssError> {
+    execute_async!(async move {
+        let client = try_get_ldk_client()?;
+        client.list_keys(&namespace).await
+    })
+}
+
+/// Lists all LDK keys across all namespaces using the dedicated LDK client.
+#[uniffi::export]
+pub async fn vss_ldk_list_all_keys() -> Result<Vec<KeyVersion>, VssError> {
+    execute_async!(async move {
+        let client = try_get_ldk_client()?;
+        client.list_all_keys().await
+    })
+}
+
+

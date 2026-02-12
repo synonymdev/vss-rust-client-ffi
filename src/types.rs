@@ -29,3 +29,29 @@ pub enum VssFilterType {
     Prefix,
     Exact,
 }
+
+#[derive(Debug, Clone, uniffi::Enum)]
+pub enum LdkNamespace {
+    Default,
+    Monitors,
+    MonitorUpdates { monitor_id: String },
+    ArchivedMonitors,
+}
+
+impl LdkNamespace {
+    pub fn primary(&self) -> &str {
+        match self {
+            LdkNamespace::Default => "",
+            LdkNamespace::Monitors => "monitors",
+            LdkNamespace::MonitorUpdates { .. } => "monitor_updates",
+            LdkNamespace::ArchivedMonitors => "archived_monitors",
+        }
+    }
+
+    pub fn secondary(&self) -> &str {
+        match self {
+            LdkNamespace::MonitorUpdates { monitor_id } => monitor_id,
+            _ => "",
+        }
+    }
+}
