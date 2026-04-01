@@ -27,8 +27,7 @@ let package = Package(
         ),
         .binaryTarget(
             name: "VssRustClientFfiFFI",
-            url: url,
-            checksum: checksum
+            path: "./bindings/ios/VssRustClientFfi.xcframework"
         )
     ]
 )
