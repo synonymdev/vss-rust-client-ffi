@@ -63,15 +63,11 @@ else
 fi
 
 # Add use directives for Xcode 26 compatibility
-cat > bindings/ios/module.modulemap << 'MODULEMAP'
-module vss_rust_client_ffiFFI {
-    header "vss_rust_client_ffiFFI.h"
-    export *
-    use "Darwin"
-    use "_Builtin_stdbool"
+sed -i '' '/^}$/i\
+    use "Darwin"\
+    use "_Builtin_stdbool"\
     use "_Builtin_stdint"
-}
-MODULEMAP
+' bindings/ios/module.modulemap
 
 # Clean up any existing XCFramework and temporary directories
 echo "Cleaning up existing XCFramework..."

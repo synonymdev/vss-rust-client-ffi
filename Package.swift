@@ -4,7 +4,7 @@
 import PackageDescription
 
 let tag = "v0.5.12"
-let checksum = "f9cfdc7ba57c39720cba34ee34781ec22a164232c5b8b6d60011856d6047f238"
+let checksum = "e3afef72cd7e18c1e638ff893843ee2301e20b39e3052cca725165015afbf31e"
 let url = "https://github.com/synonymdev/vss-rust-client-ffi/releases/download/\(tag)/VssRustClientFfi.xcframework.zip"
 
 let package = Package(
