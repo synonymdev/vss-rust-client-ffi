@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v0.5.13] - 2026-04-02
+## [v0.5.14] - 2026-04-02
 
 ### Changed
 
@@ -46,6 +46,7 @@ Initial release.
 - Store ID derivation from BIP39 mnemonic
 - GitHub Packages distribution for Android
 
+[v0.5.14]: https://github.com/synonymdev/vss-rust-client-ffi/releases/tag/v0.5.14
 [v0.5.13]: https://github.com/synonymdev/vss-rust-client-ffi/releases/tag/v0.5.13
 [v0.5.12]: https://github.com/synonymdev/vss-rust-client-ffi/releases/tag/v0.5.12
 [v0.4.0]: https://github.com/synonymdev/vss-rust-client-ffi/releases/tag/v0.4.0
