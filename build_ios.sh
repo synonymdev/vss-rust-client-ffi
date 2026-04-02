@@ -76,18 +76,17 @@ rm -rf "bindings/ios/Headers"
 rm -rf "bindings/ios/ios-arm64"
 rm -rf "bindings/ios/ios-arm64-sim"
 
-# Create temporary directories for each architecture with unique header folder
-UNIQUE_HEADER_FOLDER="VssRustClientFfiFFI"
-echo "Creating architecture-specific directories with unique header folder: $UNIQUE_HEADER_FOLDER..."
-mkdir -p "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER"
-mkdir -p "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER"
+# Create temporary directories for each architecture
+echo "Creating architecture-specific directories..."
+mkdir -p "bindings/ios/ios-arm64/Headers"
+mkdir -p "bindings/ios/ios-arm64-sim/Headers"
 
 # Copy headers to architecture-specific directories
 echo "Copying headers to architecture directories..."
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
+cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/"
+cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/"
+cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/"
+cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/"
 
 # Create XCFramework
 echo "Creating XCFramework..."
