@@ -757,20 +757,97 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
     )
 }
 
+// For large crates we prevent `MethodTooLargeException` (see #2340)
+// N.B. the name of the extension is very misleading, since it is
+// rather `InterfaceTooLargeException`, caused by too many methods
+// in the interface for large crates.
+//
+// By splitting the otherwise huge interface into two parts
+// * UniffiLib
+// * IntegrityCheckingUniffiLib (this)
+// we allow for ~2x as many methods in the UniffiLib interface.
+//
+// The `ffi_uniffi_contract_version` method and all checksum methods are put
+// into `IntegrityCheckingUniffiLib` and these methods are called only once,
+// when the library is loaded.
+internal interface IntegrityCheckingUniffiLib : Library {
+    // Integrity check functions only
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_delete(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_get(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_store(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_list(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_new_client(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_new_ldk_client_with_lnurl_auth(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_ldk_client(): Short
+
+    fun uniffi_vss_rust_client_ffi_checksum_func_vss_store(): Short
+
+    fun ffi_vss_rust_client_ffi_uniffi_contract_version(): Int
+}
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
-
 internal interface UniffiLib : Library {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
-            loadIndirect<UniffiLib>(componentName = "vss_rust_client_ffi")
-                .also { lib: UniffiLib ->
+            val componentName = "vss_rust_client_ffi"
+            // For large crates we prevent `MethodTooLargeException` (see #2340)
+            // N.B. the name of the extension is very misleading, since it is
+            // rather `InterfaceTooLargeException`, caused by too many methods
+            // in the interface for large crates.
+            //
+            // By splitting the otherwise huge interface into two parts
+            // * UniffiLib (this)
+            // * IntegrityCheckingUniffiLib
+            // And all checksum methods are put into `IntegrityCheckingUniffiLib`
+            // we allow for ~2x as many methods in the UniffiLib interface.
+            //
+            // Thus we first load the library with `loadIndirect` as `IntegrityCheckingUniffiLib`
+            // so that we can (optionally!) call `uniffiCheckApiChecksums`...
+            loadIndirect<IntegrityCheckingUniffiLib>(componentName)
+                .also { lib: IntegrityCheckingUniffiLib ->
                     uniffiCheckContractApiVersion(lib)
                     uniffiCheckApiChecksums(lib)
                 }
+            // ... and then we load the library as `UniffiLib`
+            // N.B. we cannot use `loadIndirect` once and then try to cast it to `UniffiLib`
+            // => results in `java.lang.ClassCastException: com.sun.proxy.$Proxy cannot be cast to ...`
+            // error. So we must call `loadIndirect` twice. For crates large enough
+            // to trigger this issue, the performance impact is negligible, running on
+            // a macOS M1 machine the `loadIndirect` call takes ~50ms.
+            val lib = loadIndirect<UniffiLib>(componentName)
+            // No need to check the contract version and checksums, since
+            // we already did that with `IntegrityCheckingUniffiLib` above.
+            // Loading of library with integrity check done.
+            lib
         }
     }
 
+    // FFI functions
     fun uniffi_vss_rust_client_ffi_fn_func_vss_delete(`key`: RustBuffer.ByValue): Long
 
     fun uniffi_vss_rust_client_ffi_fn_func_vss_derive_store_id(
@@ -1053,47 +1130,11 @@ internal interface UniffiLib : Library {
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_delete(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_get(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_store(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_list(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_new_client(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_new_ldk_client_with_lnurl_auth(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_ldk_client(): Short
-
-    fun uniffi_vss_rust_client_ffi_checksum_func_vss_store(): Short
-
-    fun ffi_vss_rust_client_ffi_uniffi_contract_version(): Int
 }
 
-private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
+private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
     // Get the bindings contract version from our ComponentInterface
-    val bindings_contract_version = 26
+    val bindings_contract_version = 29
     // Get the scaffolding contract version by calling the into the dylib
     val scaffolding_contract_version = lib.ffi_vss_rust_client_ffi_uniffi_contract_version()
     if (bindings_contract_version != scaffolding_contract_version) {
@@ -1102,7 +1143,7 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun uniffiCheckApiChecksums(lib: UniffiLib) {
+private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_delete() != 13005.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1154,6 +1195,13 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_vss_rust_client_ffi_checksum_func_vss_store() != 42494.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+}
+
+/**
+ * @suppress
+ */
+public fun uniffiEnsureInitialized() {
+    UniffiLib.INSTANCE
 }
 
 // Async support
@@ -1217,9 +1265,38 @@ interface Disposable {
 
     companion object {
         fun destroy(vararg args: Any?) {
-            args
-                .filterIsInstance<Disposable>()
-                .forEach(Disposable::destroy)
+            for (arg in args) {
+                when (arg) {
+                    is Disposable -> {
+                        arg.destroy()
+                    }
+
+                    is ArrayList<*> -> {
+                        for (idx in arg.indices) {
+                            val element = arg[idx]
+                            if (element is Disposable) {
+                                element.destroy()
+                            }
+                        }
+                    }
+
+                    is Map<*, *> -> {
+                        for (element in arg.values) {
+                            if (element is Disposable) {
+                                element.destroy()
+                            }
+                        }
+                    }
+
+                    is Iterable<*> -> {
+                        for (element in arg) {
+                            if (element is Disposable) {
+                                element.destroy()
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

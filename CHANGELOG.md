@@ -2,13 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v0.5.13] - 2026-04-01
+## [v0.5.13] - 2026-04-02
+
+### Changed
+
+- Upgraded UniFFI from 0.28.3 to 0.29.5 (matching bitkit-core), which natively generates `use "Darwin"`, `use "_Builtin_stdbool"`, `use "_Builtin_stdint"` modulemap directives required by Xcode 26
 
 ### Fixed
 
-- Flattened xcframework headers layout for Xcode 26 SPM compatibility — removed nested `Headers/VssRustClientFfiFFI/` subdirectory
-- Added `use "Darwin"`, `use "_Builtin_stdbool"`, `use "_Builtin_stdint"` directives to modulemap (injected via `sed` for UniFFI 0.28.3 compatibility)
-- Restored `url` + `checksum` in Package.swift binaryTarget
+- Flattened xcframework headers layout for Xcode 26 module resolution — removed nested `Headers/VssRustClientFfiFFI/` subdirectory to match bitkit-core's layout
 
 ## [v0.5.12] - 2026-02-11
 
