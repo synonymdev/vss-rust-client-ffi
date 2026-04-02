@@ -74,7 +74,7 @@ rm -rf "bindings/ios/ios-arm64-sim"
 # Using .framework bundles (like LDK-node) avoids modulemap collision with other
 # xcframeworks that also have flat Headers/module.modulemap (e.g., bitkit-core).
 # Framework modulemaps go in Modules/, not Headers/, so there's no conflict.
-FRAMEWORK_NAME="VssRustClientFfiFFI"
+FRAMEWORK_NAME="vss_rust_client_ffiFFI"
 echo "Creating framework bundles..."
 for ARCH_DIR in ios-arm64 ios-arm64-sim; do
     FW_DIR="bindings/ios/$ARCH_DIR/$FRAMEWORK_NAME.framework"
