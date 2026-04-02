@@ -7,10 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Upgraded UniFFI from 0.28.3 to 0.29.5 (matching bitkit-core), which natively generates `use "Darwin"`, `use "_Builtin_stdbool"`, `use "_Builtin_stdint"` modulemap directives required by Xcode 26
-
-### Fixed
-
-- Flattened xcframework headers layout for Xcode 26 module resolution — removed nested `Headers/VssRustClientFfiFFI/` subdirectory to match bitkit-core's layout
+- Switched xcframework from raw static libraries to `.framework` bundles (matching ldk-node), which puts modulemaps in `Modules/` instead of `Headers/`, avoiding collision with other xcframeworks
 
 ## [v0.5.12] - 2026-02-11
 
