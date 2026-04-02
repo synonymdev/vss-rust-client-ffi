@@ -1,4 +1,4 @@
-framework module vss_rust_client_ffiFFI {
+module vss_rust_client_ffiFFI {
     header "vss_rust_client_ffiFFI.h"
     export *
     use "Darwin"
