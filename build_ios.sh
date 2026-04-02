@@ -54,10 +54,12 @@ cargo run --bin uniffi-bindgen generate \
     --out-dir ./bindings/ios \
     || { echo "Failed to generate Swift bindings"; exit 1; }
 
-# Handle modulemap file
+# Handle modulemap file — convert to framework module format for .framework bundle
 echo "Handling modulemap file..."
 if [ -f bindings/ios/vss_rust_client_ffiFFI.modulemap ]; then
     mv bindings/ios/vss_rust_client_ffiFFI.modulemap bindings/ios/module.modulemap
+    # Convert "module X {" to "framework module X {" for framework bundle compatibility
+    sed -i '' 's/^module /framework module /' bindings/ios/module.modulemap
 else
     echo "Warning: modulemap file not found"
 fi
