@@ -65,28 +65,32 @@ fi
 # Clean up any existing XCFramework and temporary directories
 echo "Cleaning up existing XCFramework..."
 rm -rf "bindings/ios/VssRustClientFfi.xcframework"
-rm -rf "bindings/ios/Headers"
 rm -rf "bindings/ios/ios-arm64"
 rm -rf "bindings/ios/ios-arm64-sim"
 
-# Create temporary directories for each architecture with unique header folder
-UNIQUE_HEADER_FOLDER="VssRustClientFfiFFI"
-echo "Creating architecture-specific directories with unique header folder: $UNIQUE_HEADER_FOLDER..."
-mkdir -p "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER"
-mkdir -p "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER"
+# Create framework bundles for each architecture
+# Using .framework bundles (like LDK-node) avoids modulemap collision with other
+# xcframeworks that also have flat Headers/module.modulemap (e.g., bitkit-core).
+# Framework modulemaps go in Modules/, not Headers/, so there's no conflict.
+FRAMEWORK_NAME="VssRustClientFfiFFI"
+echo "Creating framework bundles..."
+for ARCH_DIR in ios-arm64 ios-arm64-sim; do
+    FW_DIR="bindings/ios/$ARCH_DIR/$FRAMEWORK_NAME.framework"
+    mkdir -p "$FW_DIR/Headers"
+    mkdir -p "$FW_DIR/Modules"
+    cp bindings/ios/vss_rust_client_ffiFFI.h "$FW_DIR/Headers/"
+    cp bindings/ios/module.modulemap "$FW_DIR/Modules/"
+done
 
-# Copy headers to architecture-specific directories
-echo "Copying headers to architecture directories..."
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
+# Copy static libraries into framework bundles
+cp ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a "bindings/ios/ios-arm64/$FRAMEWORK_NAME.framework/$FRAMEWORK_NAME"
+cp ./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a "bindings/ios/ios-arm64-sim/$FRAMEWORK_NAME.framework/$FRAMEWORK_NAME"
 
-# Create XCFramework
+# Create XCFramework from framework bundles
 echo "Creating XCFramework..."
 xcodebuild -create-xcframework \
-    -library ./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64-sim/Headers" \
-    -library ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64/Headers" \
+    -framework "bindings/ios/ios-arm64-sim/$FRAMEWORK_NAME.framework" \
+    -framework "bindings/ios/ios-arm64/$FRAMEWORK_NAME.framework" \
     -output "bindings/ios/VssRustClientFfi.xcframework" \
     || { echo "Failed to create XCFramework"; exit 1; }
 
