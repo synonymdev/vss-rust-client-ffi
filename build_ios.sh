@@ -69,24 +69,50 @@ rm -rf "bindings/ios/Headers"
 rm -rf "bindings/ios/ios-arm64"
 rm -rf "bindings/ios/ios-arm64-sim"
 
-# Create temporary directories for each architecture with unique header folder
-UNIQUE_HEADER_FOLDER="VssRustClientFfiFFI"
-echo "Creating architecture-specific directories with unique header folder: $UNIQUE_HEADER_FOLDER..."
-mkdir -p "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER"
-mkdir -p "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER"
+# Package each static library as a framework bundle.
+FRAMEWORK_NAME="vss_rust_client_ffiFFI"
+FRAMEWORK_BUNDLE_ID="com.synonym.vss-rust-client-ffi-ffi"
+create_framework() {
+    local framework_dir="$1/$FRAMEWORK_NAME.framework"
+    local library_path="$2"
 
-# Copy headers to architecture-specific directories
-echo "Copying headers to architecture directories..."
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/vss_rust_client_ffiFFI.h "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
-cp bindings/ios/module.modulemap "bindings/ios/ios-arm64-sim/Headers/$UNIQUE_HEADER_FOLDER/"
+    mkdir -p "$framework_dir/Headers" "$framework_dir/Modules"
+    cp "$library_path" "$framework_dir/$FRAMEWORK_NAME"
+    cp bindings/ios/vss_rust_client_ffiFFI.h "$framework_dir/Headers/"
+    sed 's/^module /framework module /' bindings/ios/module.modulemap > "$framework_dir/Modules/module.modulemap"
+    cat > "$framework_dir/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>$FRAMEWORK_NAME</string>
+    <key>CFBundleIdentifier</key>
+    <string>$FRAMEWORK_BUNDLE_ID</string>
+    <key>CFBundleName</key>
+    <string>$FRAMEWORK_NAME</string>
+    <key>CFBundlePackageType</key>
+    <string>FMWK</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+</dict>
+</plist>
+EOF
+}
+
+echo "Creating framework bundles..."
+mkdir -p "bindings/ios/ios-arm64"
+mkdir -p "bindings/ios/ios-arm64-sim"
+create_framework "bindings/ios/ios-arm64" "./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a"
+create_framework "bindings/ios/ios-arm64-sim" "./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a"
 
 # Create XCFramework
 echo "Creating XCFramework..."
 xcodebuild -create-xcframework \
-    -library ./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64-sim/Headers" \
-    -library ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a -headers "bindings/ios/ios-arm64/Headers" \
+    -framework "bindings/ios/ios-arm64-sim/$FRAMEWORK_NAME.framework" \
+    -framework "bindings/ios/ios-arm64/$FRAMEWORK_NAME.framework" \
     -output "bindings/ios/VssRustClientFfi.xcframework" \
     || { echo "Failed to create XCFramework"; exit 1; }
 

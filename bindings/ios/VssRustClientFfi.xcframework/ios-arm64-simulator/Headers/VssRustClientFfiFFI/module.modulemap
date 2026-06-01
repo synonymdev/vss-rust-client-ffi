@@ -1,4 +1,0 @@
-module vss_rust_client_ffiFFI {
-    header "vss_rust_client_ffiFFI.h"
-    export *
-}
