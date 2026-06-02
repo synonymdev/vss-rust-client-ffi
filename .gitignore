@@ -10,8 +10,7 @@
 /httpRequests/
 .ai
 .build
+/dist/
 
-# Generated SwiftPM binary artifacts
+# SwiftPM workspace files
 .swiftpm/
-bindings/ios/VssRustClientFfi.xcframework/
-bindings/ios/VssRustClientFfi.xcframework.zip

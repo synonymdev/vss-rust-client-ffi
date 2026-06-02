@@ -388,8 +388,10 @@ Error enum with detailed error information for different failure scenarios.
 ```
 
 Generates:
-- `bindings/ios/VssRustClientFfi.xcframework` - iOS framework
-- `bindings/ios/vss_rust_client_ffi.swift` - Swift bindings
+- `dist/ios/VssRustClientFfi.xcframework` - iOS framework
+- `dist/ios/VssRustClientFfi.xcframework.zip` - zipped SwiftPM binary artifact for release upload
+- `bindings/ios/vss_rust_client_ffi.swift` - Swift bindings source used by `Package.swift`
+- `bindings/ios/vss_rust_client_ffiFFI.h` and `bindings/ios/module.modulemap` - C interface files used by the Swift package
 
 ### Android Library  
 
