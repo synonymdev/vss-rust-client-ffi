@@ -69,7 +69,7 @@ When investigating VSS server behavior, protocol details, or LDK key derivation,
 1. **ALWAYS** bump the version in `Cargo.toml` before generating bindings.
 2. **ALWAYS** bump the iOS framework tag in `Package.swift` to match the new version.
 3. **ALWAYS** regenerate all bindings with `./build.sh all` after any code changes.
-4. **ALWAYS** upload `bindings/ios/VssRustClientFfi.xcframework.zip` to new GitHub releases.
+4. **ALWAYS** upload `dist/ios/VssRustClientFfi.xcframework.zip` to new GitHub releases.
 
 ## Commit Convention
 
