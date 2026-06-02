@@ -11,3 +11,8 @@ bindings/android/native-debug-symbols.zip
 /httpRequests/
 .ai
 .build
+
+# Generated SwiftPM binary artifacts
+.swiftpm/
+bindings/ios/VssRustClientFfi.xcframework/
+bindings/ios/VssRustClientFfi.xcframework.zip
