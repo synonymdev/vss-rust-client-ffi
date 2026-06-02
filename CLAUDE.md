@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cross-platform FFI library wrapping the [VSS (Versioned Storage Service) Rust Client](https://github.com/lightningdevkit/vss-server) via UniFFI. Generates bindings for Swift (iOS), Kotlin (Android), and Python. Used by mobile Lightning wallets to back up both app data and LDK (Lightning Development Kit) channel state to a VSS server.
+Cross-platform FFI library wrapping the [VSS (Versioned Storage Service) Rust Client](https://github.com/lightningdevkit/vss-server) via UniFFI. Generates bindings for Swift (iOS) and Kotlin (Android). Used by mobile Lightning wallets to back up both app data and LDK (Lightning Development Kit) channel state to a VSS server.
 
 ## Build & Test Commands
 
@@ -19,8 +19,7 @@ cargo clippy                 # Lint
 # Platform bindings (requires platform-specific toolchains)
 ./build.sh ios               # XCFramework + Swift bindings
 ./build.sh android           # JNI libs + Kotlin bindings
-./build.sh python            # Python package
-./build.sh all               # All platforms
+./build.sh all               # iOS + Android bindings
 ```
 
 ## Architecture
@@ -68,7 +67,7 @@ When investigating VSS server behavior, protocol details, or LDK key derivation,
 
 1. **ALWAYS** bump the version in `Cargo.toml` before generating bindings.
 2. **ALWAYS** bump the iOS framework tag in `Package.swift` to match the new version.
-3. **ALWAYS** regenerate all bindings with `./build.sh all` after any code changes.
+3. **ALWAYS** regenerate iOS and Android bindings with `./build.sh all` after any code changes.
 4. **ALWAYS** upload `dist/ios/VssRustClientFfi.xcframework.zip` to new GitHub releases.
 
 ## Commit Convention
