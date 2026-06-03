@@ -1,0 +1,45 @@
+name: iOS
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios-artifact:
+    name: iOS Artifact
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate Swift package manifest
+        run: swift package dump-package
+
+      - name: Build iOS XCFramework
+        run: ./build_ios.sh
+
+      - name: Verify iOS artifact outputs
+        run: |
+          test -d dist/ios/VssRustClientFfi.xcframework
+          test -f dist/ios/VssRustClientFfi.xcframework.zip
+          swift package compute-checksum dist/ios/VssRustClientFfi.xcframework.zip
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VssRustClientFfi-iOS
+          path: |
+            dist/ios/VssRustClientFfi.xcframework
+            dist/ios/VssRustClientFfi.xcframework.zip
+          if-no-files-found: error
