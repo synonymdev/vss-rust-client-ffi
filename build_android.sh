@@ -34,10 +34,11 @@ cargo build --release
 
 export CARGO_PROFILE_RELEASE_STRIP=false
 
-# Install cargo-ndk if not already installed
-if ! command -v cargo-ndk &> /dev/null; then
-    echo "Installing cargo-ndk..."
-    cargo install cargo-ndk
+# Install the cargo-ndk version used by the mobile release scripts.
+CARGO_NDK_VERSION="3.5.4"
+if ! command -v cargo-ndk &> /dev/null || ! cargo ndk --version | grep -q "cargo-ndk $CARGO_NDK_VERSION"; then
+    echo "Installing cargo-ndk $CARGO_NDK_VERSION..."
+    cargo install cargo-ndk --version "$CARGO_NDK_VERSION" --locked --force
 fi
 
 # Check if Android NDK is available
