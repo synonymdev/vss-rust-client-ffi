@@ -129,7 +129,11 @@ unset CARGO_PROFILE_RELEASE_STRIP
 
 # Generate Kotlin bindings
 echo "Generating Kotlin bindings..."
-LIBRARY_PATH="./target/release/libvss_rust_client_ffi.dylib"
+case "$(uname -s)" in
+    Darwin*) LIBRARY_PATH="./target/release/libvss_rust_client_ffi.dylib" ;;
+    Linux*) LIBRARY_PATH="./target/release/libvss_rust_client_ffi.so" ;;
+    *) LIBRARY_PATH="./target/release/libvss_rust_client_ffi.so" ;;
+esac
 
 # Check if the library file exists
 if [ ! -f "$LIBRARY_PATH" ]; then
