@@ -24,7 +24,8 @@ cargo build
 
 # Temporarily set crate-type for Android (restored at end)
 cp Cargo.toml Cargo.toml.bak
-sed -i '' 's/crate-type = .*/crate-type = ["cdylib"]/' Cargo.toml
+sed -i.bak 's/crate-type = .*/crate-type = ["cdylib"]/' Cargo.toml
+rm -f Cargo.toml.bak.bak
 trap 'mv Cargo.toml.bak Cargo.toml' EXIT
 
 # Build release
