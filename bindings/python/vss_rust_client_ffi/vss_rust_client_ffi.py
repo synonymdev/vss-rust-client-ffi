@@ -454,7 +454,7 @@ def _uniffi_load_indirect():
 
 def _uniffi_check_contract_api_version(lib):
     # Get the bindings contract version from our ComponentInterface
-    bindings_contract_version = 26
+    bindings_contract_version = 29
     # Get the scaffolding contract version by calling the into the dylib
     scaffolding_contract_version = lib.ffi_vss_rust_client_ffi_uniffi_contract_version()
     if bindings_contract_version != scaffolding_contract_version:
@@ -1262,7 +1262,7 @@ class LdkNamespace:
             return "LdkNamespace.DEFAULT()".format()
 
         def __eq__(self, other):
-            if not other.is_default():
+            if not other.is_DEFAULT():
                 return False
             return True
     
@@ -1275,7 +1275,7 @@ class LdkNamespace:
             return "LdkNamespace.MONITORS()".format()
 
         def __eq__(self, other):
-            if not other.is_monitors():
+            if not other.is_MONITORS():
                 return False
             return True
     
@@ -1289,7 +1289,7 @@ class LdkNamespace:
             return "LdkNamespace.MONITOR_UPDATES(monitor_id={})".format(self.monitor_id)
 
         def __eq__(self, other):
-            if not other.is_monitor_updates():
+            if not other.is_MONITOR_UPDATES():
                 return False
             if self.monitor_id != other.monitor_id:
                 return False
@@ -1304,20 +1304,28 @@ class LdkNamespace:
             return "LdkNamespace.ARCHIVED_MONITORS()".format()
 
         def __eq__(self, other):
-            if not other.is_archived_monitors():
+            if not other.is_ARCHIVED_MONITORS():
                 return False
             return True
     
     
 
-    # For each variant, we have an `is_NAME` method for easily checking
+    # For each variant, we have `is_NAME` and `is_name` methods for easily checking
     # whether an instance is that variant.
+    def is_DEFAULT(self) -> bool:
+        return isinstance(self, LdkNamespace.DEFAULT)
     def is_default(self) -> bool:
         return isinstance(self, LdkNamespace.DEFAULT)
+    def is_MONITORS(self) -> bool:
+        return isinstance(self, LdkNamespace.MONITORS)
     def is_monitors(self) -> bool:
         return isinstance(self, LdkNamespace.MONITORS)
+    def is_MONITOR_UPDATES(self) -> bool:
+        return isinstance(self, LdkNamespace.MONITOR_UPDATES)
     def is_monitor_updates(self) -> bool:
         return isinstance(self, LdkNamespace.MONITOR_UPDATES)
+    def is_ARCHIVED_MONITORS(self) -> bool:
+        return isinstance(self, LdkNamespace.ARCHIVED_MONITORS)
     def is_archived_monitors(self) -> bool:
         return isinstance(self, LdkNamespace.ARCHIVED_MONITORS)
     
@@ -1354,27 +1362,27 @@ class _UniffiConverterTypeLdkNamespace(_UniffiConverterRustBuffer):
 
     @staticmethod
     def check_lower(value):
-        if value.is_default():
+        if value.is_DEFAULT():
             return
-        if value.is_monitors():
+        if value.is_MONITORS():
             return
-        if value.is_monitor_updates():
+        if value.is_MONITOR_UPDATES():
             _UniffiConverterString.check_lower(value.monitor_id)
             return
-        if value.is_archived_monitors():
+        if value.is_ARCHIVED_MONITORS():
             return
         raise ValueError(value)
 
     @staticmethod
     def write(value, buf):
-        if value.is_default():
+        if value.is_DEFAULT():
             buf.write_i32(1)
-        if value.is_monitors():
+        if value.is_MONITORS():
             buf.write_i32(2)
-        if value.is_monitor_updates():
+        if value.is_MONITOR_UPDATES():
             buf.write_i32(3)
             _UniffiConverterString.write(value.monitor_id, buf)
-        if value.is_archived_monitors():
+        if value.is_ARCHIVED_MONITORS():
             buf.write_i32(4)
 
 
@@ -1775,6 +1783,8 @@ class _UniffiConverterSequenceTypeVssItem(_UniffiConverterRustBuffer):
         return [
             _UniffiConverterTypeVssItem.read(buf) for i in range(count)
         ]
+
+# objects.
 
 # Async support# RustFuturePoll values
 _UNIFFI_RUST_FUTURE_POLL_READY = 0
