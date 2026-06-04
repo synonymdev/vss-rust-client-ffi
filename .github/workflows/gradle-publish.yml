@@ -36,6 +36,7 @@ jobs:
       uses: android-actions/setup-android@v3
 
     - name: Set up Android NDK
+      id: setup-ndk
       uses: nttld/setup-ndk@v1
       with:
         ndk-version: r27c
@@ -52,6 +53,8 @@ jobs:
         echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
 
     - name: Generate Android bindings
+      env:
+        ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
       run: ./build_android.sh
 
     - name: Build with Gradle

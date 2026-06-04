@@ -31,6 +31,11 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    packaging {
+        jniLibs {
+            keepDebugSymbols += listOf("**/libvss_rust_client_ffi.so")
+        }
+    }
     publishing {
         singleVariant("release") {
             withSourcesJar()
