@@ -31,6 +31,8 @@ trap 'mv Cargo.toml.bak Cargo.toml' EXIT
 echo "Building release version..."
 cargo build --release
 
+export CARGO_PROFILE_RELEASE_STRIP=false
+
 # Install cargo-ndk if not already installed
 if ! command -v cargo-ndk &> /dev/null; then
     echo "Installing cargo-ndk..."
@@ -74,14 +76,54 @@ rustup target add \
 
 # Build for all Android architectures
 echo "Building for Android architectures..."
+find_readelf() {
+    if command -v llvm-readelf >/dev/null 2>&1; then
+        command -v llvm-readelf
+        return
+    fi
+
+    if command -v readelf >/dev/null 2>&1; then
+        command -v readelf
+        return
+    fi
+
+    echo "Error: llvm-readelf or readelf is required to validate Android native debug symbols"
+    exit 1
+}
+
+has_debug_metadata() {
+    "$READELF_BIN" -S "$1" | grep -Eq '\.(symtab|debug_|gnu_debugdata)'
+}
+
+validate_android_symbols() {
+    READELF_BIN=$(find_readelf)
+
+    for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+        lib="$JNILIBS_DIR/$abi/libvss_rust_client_ffi.so"
+        if [ ! -f "$lib" ]; then
+            echo "Error: Android native library missing at $lib"
+            exit 1
+        fi
+
+        if ! has_debug_metadata "$lib"; then
+            echo "Error: Android native library has no usable debug metadata: $lib"
+            exit 1
+        fi
+    done
+}
+
 cargo ndk \
     -o "$JNILIBS_DIR" \
+    --no-strip \
     --manifest-path ./Cargo.toml \
     -t armeabi-v7a \
     -t arm64-v8a \
     -t x86 \
     -t x86_64 \
     build --release
+
+validate_android_symbols
+unset CARGO_PROFILE_RELEASE_STRIP
 
 # Generate Kotlin bindings
 echo "Generating Kotlin bindings..."
