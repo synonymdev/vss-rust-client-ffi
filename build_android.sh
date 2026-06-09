@@ -90,6 +90,18 @@ find_readelf() {
         return
     fi
 
+    for ndk_dir in "${ANDROID_NDK_ROOT:-}" "${ANDROID_NDK_HOME:-}" "${NDK_HOME:-}"; do
+        if [ -z "$ndk_dir" ] || [ ! -d "$ndk_dir/toolchains/llvm/prebuilt" ]; then
+            continue
+        fi
+
+        ndk_readelf=$(find "$ndk_dir/toolchains/llvm/prebuilt" -path '*/bin/llvm-readelf' | head -n 1)
+        if [ -n "$ndk_readelf" ]; then
+            echo "$ndk_readelf"
+            return
+        fi
+    done
+
     echo "Error: llvm-readelf or readelf is required to validate Android native debug symbols"
     exit 1
 }
@@ -128,14 +140,9 @@ EOF
 
 validate_android_library() {
     lib="$1"
-    abi="$2"
     if ! has_debug_metadata "$lib"; then
         echo "Error: Android native library has no usable debug metadata: $lib"
         exit 1
-    fi
-
-    if [ "$abi" != "arm64-v8a" ] && [ "$abi" != "x86_64" ]; then
-        return 0
     fi
 
     if ! has_16kb_load_alignment "$lib"; then
@@ -155,7 +162,7 @@ validate_android_symbols() {
             exit 1
         fi
 
-        validate_android_library "$lib" "$abi"
+        validate_android_library "$lib"
     done
 }
 
@@ -178,7 +185,7 @@ validate_android_aar_symbols() {
             exit 1
         fi
 
-        validate_android_library "$lib" "$abi"
+        validate_android_library "$lib"
     done
 
     rm -rf "$tmp_dir"
