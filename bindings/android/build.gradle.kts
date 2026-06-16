@@ -32,11 +32,6 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    packaging {
-        jniLibs {
-            keepDebugSymbols += listOf("**/libvss_rust_client_ffi.so")
-        }
-    }
     publishing {
         singleVariant("release") {
             withSourcesJar()
@@ -104,7 +99,7 @@ fun String.parseElfAlignment(): Long {
 
 val validateReleaseNativeLibraries by tasks.registering {
     group = "verification"
-    description = "Validates release JNI libraries keep full DWARF metadata and 16 KB LOAD alignment."
+    description = "Validates release JNI libraries are stripped and keep 16 KB LOAD alignment."
 
     doLast {
         val readelf = findReadelf()
@@ -117,8 +112,11 @@ val validateReleaseNativeLibraries by tasks.registering {
             }
 
             val (sectionsExit, sections) = runReadelf(readelf, "-S", lib.absolutePath)
-            if (sectionsExit != 0 || !Regex("""\.debug_info""").containsMatchIn(sections)) {
-                throw GradleException("Android native library has no .debug_info DWARF metadata: '${lib.path}'")
+            if (sectionsExit != 0) {
+                throw GradleException("Unable to inspect Android native library sections: '${lib.path}'")
+            }
+            if (Regex("""\.debug_""").containsMatchIn(sections)) {
+                throw GradleException("Android release native library still contains .debug_* sections: '${lib.path}'")
             }
 
             val wideHeaders = runReadelf(readelf, "-W", "-l", lib.absolutePath)
@@ -158,6 +156,10 @@ afterEvaluate {
                 version = project.version.toString()
 
                 from(components["release"])
+                artifact(rootProject.layout.projectDirectory.file("native-debug-symbols.zip")) {
+                    classifier = "native-debug-symbols"
+                    extension = "zip"
+                }
                 pom {
                     name.set(mavenArtifactId)
                     description.set("VSS Rust Client Android bindings.")
