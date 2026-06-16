@@ -33,6 +33,7 @@ trap 'mv Cargo.toml.bak Cargo.toml' EXIT
 echo "Building release version..."
 cargo build --release
 
+export CARGO_PROFILE_RELEASE_DEBUG=2
 export CARGO_PROFILE_RELEASE_STRIP=false
 
 # Install the cargo-ndk version used by the mobile release scripts.
@@ -217,11 +218,17 @@ create_native_debug_symbols_archive() {
 
     rm -f "$NATIVE_DEBUG_SYMBOLS_ZIP"
     archive_path="$PWD/$NATIVE_DEBUG_SYMBOLS_ZIP"
-    (
+    if ! (
         cd "$tmp_dir"
         zip -qr "$archive_path" armeabi-v7a arm64-v8a x86 x86_64
-    )
-    zip -T "$NATIVE_DEBUG_SYMBOLS_ZIP" >/dev/null
+    ); then
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+    if ! zip -T "$NATIVE_DEBUG_SYMBOLS_ZIP" >/dev/null; then
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
     rm -rf "$tmp_dir"
 }
 
@@ -280,6 +287,7 @@ validate_android_symbols
 create_native_debug_symbols_archive
 strip_android_libraries
 validate_stripped_android_symbols
+unset CARGO_PROFILE_RELEASE_DEBUG
 unset CARGO_PROFILE_RELEASE_STRIP
 unset RUSTFLAGS
 
