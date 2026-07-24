@@ -80,7 +80,7 @@ rustup target add \
 
 # Build for all Android architectures
 echo "Building for Android architectures..."
-export RUSTFLAGS="-C link-args=-Wl,-z,max-page-size=16384,-z,common-page-size=16384"
+export RUSTFLAGS="-C link-arg=-Wl,--build-id=sha1 -C link-args=-Wl,-z,max-page-size=16384,-z,common-page-size=16384"
 find_readelf() {
     if command -v llvm-readelf >/dev/null 2>&1; then
         command -v llvm-readelf
