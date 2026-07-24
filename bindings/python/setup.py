@@ -10,7 +10,7 @@ except FileNotFoundError:
 
 setup(
     name="vss-rust-client-ffi",
-    version="0.1.0",
+    version="0.5.21",
     packages=find_packages(),
     package_data={
         "vss_rust_client_ffi": ["*.so", "*.dylib", "*.dll"],

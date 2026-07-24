@@ -7,6 +7,12 @@ echo "Starting Python build process..."
 # Define output directories
 BASE_DIR="./bindings/python"
 PACKAGE_DIR="$BASE_DIR/vss_rust_client_ffi"
+PACKAGE_VERSION=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
+
+if [ -z "$PACKAGE_VERSION" ]; then
+    echo "Error: Package version not found in Cargo.toml"
+    exit 1
+fi
 
 # Create output directories
 mkdir -p "$BASE_DIR"
@@ -87,7 +93,7 @@ fi
 touch "$PACKAGE_DIR/__init__.py"
 
 # Create setup.py
-cat > "$BASE_DIR/setup.py" << 'EOL'
+cat > "$BASE_DIR/setup.py" << EOL
 from setuptools import setup, find_packages
 import os
 
@@ -100,7 +106,7 @@ except FileNotFoundError:
 
 setup(
     name="vss-rust-client-ffi",
-    version="0.1.0",
+    version="$PACKAGE_VERSION",
     packages=find_packages(),
     package_data={
         "vss_rust_client_ffi": ["*.so", "*.dylib", "*.dll"],

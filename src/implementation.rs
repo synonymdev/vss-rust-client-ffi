@@ -1,5 +1,6 @@
 use super::errors::VssError;
 use super::types::*;
+use bip39::Mnemonic;
 use bitcoin::bip32::{ChildNumber, Xpriv};
 use bitcoin::hashes::{sha256, Hash, HashEngine, Hmac, HmacEngine};
 use bitcoin::secp256k1::Secp256k1;
@@ -7,6 +8,7 @@ use bitcoin::Network;
 use prost::Message;
 use rand::RngCore;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use vss_client_ng::client::VssClient as ExternalVssClient;
 use vss_client_ng::error::VssError as ExternalVssError;
@@ -21,8 +23,6 @@ use vss_client_ng::util::retry::{
     MaxAttemptsRetryPolicy, MaxTotalDelayRetryPolicy, RetryPolicy,
 };
 use vss_client_ng::util::storable_builder::{EntropySource, StorableBuilder};
-use bip39::Mnemonic;
-use std::str::FromStr;
 
 pub(crate) const VSS_HARDENED_CHILD_INDEX: u32 = 877;
 pub(crate) const VSS_LNURL_AUTH_HARDENED_CHILD_INDEX: u32 = 138;
@@ -68,8 +68,12 @@ pub fn derive_vss_store_id(
         .derive_priv(
             &secp,
             &[
-                ChildNumber::Hardened { index: VSS_HARDENED_CHILD_INDEX },
-                ChildNumber::Hardened { index: VSS_STORE_ID_HARDENED_CHILD_INDEX },
+                ChildNumber::Hardened {
+                    index: VSS_HARDENED_CHILD_INDEX,
+                },
+                ChildNumber::Hardened {
+                    index: VSS_STORE_ID_HARDENED_CHILD_INDEX,
+                },
             ],
         )
         .map_err(|e| VssError::ConnectionError {
@@ -223,9 +227,11 @@ impl VssClient {
         let storable_builder = Arc::new(StorableBuilder::new(RandEntropySource));
 
         let (app_data_encryption_key, app_key_obfuscator) = if let Some(seed) = app_vss_seed {
-            let (dek, obfuscation_master_key) =
-                derive_data_encryption_and_obfuscation_keys(&seed);
-            (dek, Some(Arc::new(KeyObfuscator::new(obfuscation_master_key))))
+            let (dek, obfuscation_master_key) = derive_data_encryption_and_obfuscation_keys(&seed);
+            (
+                dek,
+                Some(Arc::new(KeyObfuscator::new(obfuscation_master_key))),
+            )
         } else {
             ([0u8; 32], None)
         };
@@ -288,10 +294,15 @@ impl VssClient {
     pub async fn get(&self, key: String) -> Result<Option<VssItem>, VssError> {
         let storage_key = self.build_key(&key);
 
-        if let Some((value, version)) =
-            self.try_get_raw(&storage_key, &self.app_data_encryption_key).await?
+        if let Some((value, version)) = self
+            .try_get_raw(&storage_key, &self.app_data_encryption_key)
+            .await?
         {
-            return Ok(Some(VssItem { key, value, version }));
+            return Ok(Some(VssItem {
+                key,
+                value,
+                version,
+            }));
         }
 
         Ok(None)
@@ -324,7 +335,8 @@ impl VssClient {
     /// Vector of KeyVersion structs (more efficient than list())
     pub async fn list_keys(&self, prefix: Option<String>) -> Result<Vec<KeyVersion>, VssError> {
         let storage_prefix = prefix.as_ref().map(|p| self.build_key(p));
-        self.list_key_versions(storage_prefix, &self.app_key_obfuscator).await
+        self.list_key_versions(storage_prefix, &self.app_key_obfuscator)
+            .await
     }
 
     /// Stores multiple key-value pairs in an atomic transaction.
@@ -408,10 +420,9 @@ impl VssClient {
         storage_key: &str,
     ) -> Result<String, VssError> {
         if let Some(ref obfuscator) = key_obfuscator {
-            Self::try_deobfuscate(obfuscator, storage_key)
-                .ok_or_else(|| VssError::ListError {
-                    error_details: "Failed to deobfuscate key".to_string(),
-                })
+            Self::try_deobfuscate(obfuscator, storage_key).ok_or_else(|| VssError::ListError {
+                error_details: "Failed to deobfuscate key".to_string(),
+            })
         } else {
             Ok(storage_key.to_string())
         }
@@ -536,7 +547,9 @@ impl VssClient {
 }
 
 /// Derives data encryption and obfuscation keys from VSS seed
-pub(crate) fn derive_data_encryption_and_obfuscation_keys(vss_seed: &[u8; 32]) -> ([u8; 32], [u8; 32]) {
+pub(crate) fn derive_data_encryption_and_obfuscation_keys(
+    vss_seed: &[u8; 32],
+) -> ([u8; 32], [u8; 32]) {
     let hkdf = |initial_key_material: &[u8], salt: &[u8]| -> [u8; 32] {
         let mut engine = HmacEngine::<sha256::Hash>::new(salt);
         engine.input(initial_key_material);
@@ -559,11 +572,15 @@ pub(crate) fn derive_data_encryption_and_obfuscation_keys(vss_seed: &[u8; 32]) -
 /// Internal VssError with appropriate error details
 pub(crate) fn convert_error(error: ExternalVssError, _operation: &str) -> VssError {
     match error {
-        ExternalVssError::NoSuchKeyError(msg) => VssError::GetError { error_details: format!("Not found: {}", msg) },
+        ExternalVssError::NoSuchKeyError(msg) => VssError::GetError {
+            error_details: format!("Not found: {}", msg),
+        },
         ExternalVssError::InternalServerError(msg) => VssError::NetworkError { error_details: msg },
         ExternalVssError::InvalidRequestError(msg) => VssError::InvalidData { error_details: msg },
         ExternalVssError::InternalError(msg) => VssError::UnknownError { error_details: msg },
-        ExternalVssError::ConflictError(msg) => VssError::StoreError { error_details: format!("Conflict: {}", msg) },
+        ExternalVssError::ConflictError(msg) => VssError::StoreError {
+            error_details: format!("Conflict: {}", msg),
+        },
         ExternalVssError::AuthError(msg) => VssError::AuthError { error_details: msg },
     }
 }

@@ -7,7 +7,7 @@ mod tests;
 mod types;
 
 pub use errors::*;
-pub use implementation::{VssClient, derive_vss_store_id};
+pub use implementation::{derive_vss_store_id, VssClient};
 pub use ldk_client::LdkVssClient;
 pub use types::*;
 
@@ -138,8 +138,7 @@ pub async fn vss_new_client_with_lnurl_auth(
         };
 
         let client =
-            VssClient::new_with_lnurl_auth(base_url, store_id, seed, lnurl_auth_server_url)
-                .await?;
+            VssClient::new_with_lnurl_auth(base_url, store_id, seed, lnurl_auth_server_url).await?;
 
         let storage = get_vss_client();
         let mut guard = storage.lock().unwrap();
@@ -172,10 +171,7 @@ pub async fn vss_new_client_with_lnurl_auth(
 /// println!("Stored at version: {}", item.version);
 /// ```
 #[uniffi::export]
-pub async fn vss_store(
-    key: String,
-    value: Vec<u8>
-) -> Result<VssItem, VssError> {
+pub async fn vss_store(key: String, value: Vec<u8>) -> Result<VssItem, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
         client.store(key, value).await
@@ -202,9 +198,7 @@ pub async fn vss_store(
 /// }
 /// ```
 #[uniffi::export]
-pub async fn vss_get(
-    key: String
-) -> Result<Option<VssItem>, VssError> {
+pub async fn vss_get(key: String) -> Result<Option<VssItem>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
         client.get(key).await
@@ -233,9 +227,7 @@ pub async fn vss_get(
 /// }
 /// ```
 #[uniffi::export]
-pub async fn vss_list(
-    prefix: Option<String>
-) -> Result<Vec<VssItem>, VssError> {
+pub async fn vss_list(prefix: Option<String>) -> Result<Vec<VssItem>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
         client.list(prefix).await
@@ -264,9 +256,7 @@ pub async fn vss_list(
 /// }
 /// ```
 #[uniffi::export]
-pub async fn vss_list_keys(
-    prefix: Option<String>
-) -> Result<Vec<KeyVersion>, VssError> {
+pub async fn vss_list_keys(prefix: Option<String>) -> Result<Vec<KeyVersion>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
         client.list_keys(prefix).await
@@ -295,9 +285,7 @@ pub async fn vss_list_keys(
 /// println!("Stored {} items", stored_items.len());
 /// ```
 #[uniffi::export]
-pub async fn vss_put_with_key_prefix(
-    items: Vec<KeyValue>
-) -> Result<Vec<VssItem>, VssError> {
+pub async fn vss_put_with_key_prefix(items: Vec<KeyValue>) -> Result<Vec<VssItem>, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
         client.put_with_key_prefix(items).await
@@ -326,9 +314,7 @@ pub async fn vss_put_with_key_prefix(
 /// }
 /// ```
 #[uniffi::export]
-pub async fn vss_delete(
-    key: String
-) -> Result<bool, VssError> {
+pub async fn vss_delete(key: String) -> Result<bool, VssError> {
     execute_async!(async move {
         let client = try_get_client()?;
         client.delete(key).await
@@ -384,7 +370,6 @@ pub fn vss_shutdown_client() {
     }
 }
 
-
 // --- Dedicated LDK client ---
 
 fn get_ldk_client() -> &'static Arc<Mutex<Option<LdkVssClient>>> {
@@ -397,7 +382,9 @@ fn try_get_ldk_client() -> Result<LdkVssClient, VssError> {
     guard
         .as_ref()
         .ok_or(VssError::ConnectionError {
-            error_details: "LDK VSS client not initialized. Call vss_new_ldk_client_with_lnurl_auth() first.".to_string(),
+            error_details:
+                "LDK VSS client not initialized. Call vss_new_ldk_client_with_lnurl_auth() first."
+                    .to_string(),
         })
         .cloned()
 }
@@ -473,10 +460,7 @@ pub async fn vss_ldk_store(
 
 /// Deletes a key-value pair using the dedicated LDK client.
 #[uniffi::export]
-pub async fn vss_ldk_delete(
-    key: String,
-    namespace: LdkNamespace,
-) -> Result<bool, VssError> {
+pub async fn vss_ldk_delete(key: String, namespace: LdkNamespace) -> Result<bool, VssError> {
     execute_async!(async move {
         let client = try_get_ldk_client()?;
         client.delete(key, &namespace).await
@@ -485,9 +469,7 @@ pub async fn vss_ldk_delete(
 
 /// Lists keys in a namespace using the dedicated LDK client.
 #[uniffi::export]
-pub async fn vss_ldk_list_keys(
-    namespace: LdkNamespace,
-) -> Result<Vec<KeyVersion>, VssError> {
+pub async fn vss_ldk_list_keys(namespace: LdkNamespace) -> Result<Vec<KeyVersion>, VssError> {
     execute_async!(async move {
         let client = try_get_ldk_client()?;
         client.list_keys(&namespace).await
@@ -502,5 +484,3 @@ pub async fn vss_ldk_list_all_keys() -> Result<Vec<KeyVersion>, VssError> {
         client.list_all_keys().await
     })
 }
-
-

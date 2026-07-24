@@ -69,10 +69,8 @@ impl LdkVssClient {
 
         // LNURL-auth: from full 64-byte seed (same server identity as ldk-node)
         let auth_master_xprv =
-            Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| {
-                VssError::ConnectionError {
-                    error_details: format!("Failed to create auth master key: {}", e),
-                }
+            Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| VssError::ConnectionError {
+                error_details: format!("Failed to create auth master key: {}", e),
             })?;
         let auth_vss_xprv = auth_master_xprv
             .derive_priv(
@@ -124,19 +122,18 @@ impl LdkVssClient {
             derive_data_encryption_and_obfuscation_keys(&vss_seed);
         let key_obfuscator = Arc::new(KeyObfuscator::new(obfuscation_master_key));
 
-        let retry_policy =
-            ExponentialBackoffRetryPolicy::new(std::time::Duration::from_millis(10))
-                .with_max_attempts(10)
-                .with_max_total_delay(std::time::Duration::from_secs(15))
-                .with_max_jitter(std::time::Duration::from_millis(10))
-                .skip_retry_on_error(Box::new(|e: &ExternalVssError| {
-                    matches!(
-                        e,
-                        ExternalVssError::NoSuchKeyError(..)
-                            | ExternalVssError::InvalidRequestError(..)
-                            | ExternalVssError::ConflictError(..)
-                    )
-                }) as _);
+        let retry_policy = ExponentialBackoffRetryPolicy::new(std::time::Duration::from_millis(10))
+            .with_max_attempts(10)
+            .with_max_total_delay(std::time::Duration::from_secs(15))
+            .with_max_jitter(std::time::Duration::from_millis(10))
+            .skip_retry_on_error(Box::new(|e: &ExternalVssError| {
+                matches!(
+                    e,
+                    ExternalVssError::NoSuchKeyError(..)
+                        | ExternalVssError::InvalidRequestError(..)
+                        | ExternalVssError::ConflictError(..)
+                )
+            }) as _);
 
         let client = ExternalVssClient::new_with_headers(base_url, retry_policy, header_provider);
 
@@ -225,11 +222,7 @@ impl LdkVssClient {
     }
 
     /// Deletes a key-value pair using ldk-node's namespaced key format.
-    pub async fn delete(
-        &self,
-        key: String,
-        namespace: &LdkNamespace,
-    ) -> Result<bool, VssError> {
+    pub async fn delete(&self, key: String, namespace: &LdkNamespace) -> Result<bool, VssError> {
         let storage_key = self.build_key(&key, namespace);
         let request = DeleteObjectRequest {
             store_id: self.store_id.clone(),
@@ -247,10 +240,7 @@ impl LdkVssClient {
     }
 
     /// Lists keys in a specific namespace with client-side deobfuscation.
-    pub async fn list_keys(
-        &self,
-        namespace: &LdkNamespace,
-    ) -> Result<Vec<KeyVersion>, VssError> {
+    pub async fn list_keys(&self, namespace: &LdkNamespace) -> Result<Vec<KeyVersion>, VssError> {
         let prefix = Some(self.build_prefix(namespace));
         self.list_key_versions_deobfuscated(prefix).await
     }
