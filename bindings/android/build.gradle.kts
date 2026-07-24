@@ -138,17 +138,12 @@ val validateReleaseNativeLibraries by tasks.registering {
                     )
                 }
 
-                val wideHeaders = runReadelf(readelf, "-W", "-l", lib.absolutePath)
-                val headers = if (wideHeaders.first == 0) {
-                    wideHeaders.second
-                } else {
-                    val fallbackHeaders = runReadelf(readelf, "-l", lib.absolutePath)
-                    if (fallbackHeaders.first != 0) {
-                        throw GradleException(
-                            "Unable to inspect Android release AAR ABI '$abi' library '$libraryPath'"
-                        )
-                    }
-                    fallbackHeaders.second
+                val (headersExit, headers) = runReadelf(readelf, "-W", "-l", lib.absolutePath)
+                if (headersExit != 0) {
+                    throw GradleException(
+                        "Unable to inspect wide program headers for Android release AAR " +
+                            "ABI '$abi' library '$libraryPath' with '$readelf'"
+                    )
                 }
 
                 val programHeaders = headers

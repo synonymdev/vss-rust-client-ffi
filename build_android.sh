@@ -139,12 +139,10 @@ has_dwarf_sections() {
 }
 
 readelf_program_headers() {
-    if "$READELF_BIN" -W -l "$1" >/dev/null 2>&1; then
-        "$READELF_BIN" -W -l "$1"
-        return
+    if ! "$READELF_BIN" -W -l "$1"; then
+        echo "Error: readelf must support wide program headers for Android native validation: $READELF_BIN"
+        exit 1
     fi
-
-    "$READELF_BIN" -l "$1"
 }
 
 validate_16kb_elf_segments() {

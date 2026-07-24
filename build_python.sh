@@ -41,15 +41,12 @@ echo "Generating Python bindings..."
 case "$(uname)" in
     "Darwin")
         LIBRARY_PATH="./target/release/libvss_rust_client_ffi.dylib"
-        LIBRARY_NAME="libvss_rust_client_ffi.dylib"
         ;;
     "Linux")
         LIBRARY_PATH="./target/release/libvss_rust_client_ffi.so"
-        LIBRARY_NAME="libvss_rust_client_ffi.so"
         ;;
     "MINGW"*|"MSYS"*|"CYGWIN"*)
         LIBRARY_PATH="./target/release/vss_rust_client_ffi.dll"
-        LIBRARY_NAME="vss_rust_client_ffi.dll"
         ;;
     *)
         echo "Unsupported platform: $(uname)"
@@ -87,7 +84,8 @@ fi
 touch "$PACKAGE_DIR/__init__.py"
 
 # Create setup.py
-cat > "$BASE_DIR/setup.py" << 'EOL'
+CARGO_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/' | head -1)
+cat > "$BASE_DIR/setup.py" << EOL
 from setuptools import setup, find_packages
 import os
 
@@ -100,7 +98,7 @@ except FileNotFoundError:
 
 setup(
     name="vss-rust-client-ffi",
-    version="0.1.0",
+    version="$CARGO_VERSION",
     packages=find_packages(),
     package_data={
         "vss_rust_client_ffi": ["*.so", "*.dylib", "*.dll"],
