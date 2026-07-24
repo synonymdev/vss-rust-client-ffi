@@ -16,8 +16,8 @@ mkdir -p "$JNILIBS_DIR"
 
 # Remove previous build
 echo "Removing previous build..."
-rm -rf "$BASE_DIR"/*
-rm -rf "$JNILIBS_DIR"/*
+rm -rf "${BASE_DIR:?}"/*
+rm -rf "${JNILIBS_DIR:?}"/*
 
 # Cargo Build
 echo "Building Rust libraries..."
@@ -147,10 +147,13 @@ readelf_program_headers() {
     "$READELF_BIN" -l "$1"
 }
 
-has_16kb_load_alignment() {
-    alignments=$(readelf_program_headers "$1" | awk '$1 == "LOAD" { print $NF }')
+validate_16kb_elf_segments() {
+    lib="$1"
+    headers=$(readelf_program_headers "$lib")
+    alignments=$(printf '%s\n' "$headers" | awk '$1 == "LOAD" { print $NF }')
     if [ -z "$alignments" ]; then
-        return 1
+        echo "Error: Android native library has no PT_LOAD segments: $lib"
+        exit 1
     fi
 
     while read -r alignment; do
@@ -159,10 +162,34 @@ has_16kb_load_alignment() {
         fi
 
         if [ "$((alignment))" -lt 16384 ]; then
-            return 1
+            echo "Error: Android native library has PT_LOAD alignment $alignment below 0x4000: $lib"
+            printf '%s\n' "$headers" | grep LOAD || true
+            exit 1
         fi
     done <<EOF
 $alignments
+EOF
+
+    relro_segments=$(printf '%s\n' "$headers" | awk '$1 == "GNU_RELRO" { print $3, $6 }')
+    if [ -z "$relro_segments" ]; then
+        echo "Error: Android native library has no PT_GNU_RELRO segment: $lib"
+        exit 1
+    fi
+
+    while read -r virtual_address memory_size; do
+        if [ -z "$virtual_address" ] || [ -z "$memory_size" ]; then
+            continue
+        fi
+
+        relro_end=$((virtual_address + memory_size))
+        if [ "$((relro_end % 16384))" -ne 0 ]; then
+            printf 'Error: Android native library has PT_GNU_RELRO end 0x%x (vaddr %s + memsz %s), which is not 0x4000-aligned: %s\n' \
+                "$relro_end" "$virtual_address" "$memory_size" "$lib"
+            printf '%s\n' "$headers" | grep GNU_RELRO || true
+            exit 1
+        fi
+    done <<EOF
+$relro_segments
 EOF
 }
 
@@ -173,11 +200,7 @@ validate_android_library() {
         exit 1
     fi
 
-    if ! has_16kb_load_alignment "$lib"; then
-        echo "Error: Android native library is not 16 KB page-size aligned: $lib"
-        readelf_program_headers "$lib" | grep LOAD || true
-        exit 1
-    fi
+    validate_16kb_elf_segments "$lib"
 }
 
 validate_stripped_android_library() {
@@ -187,11 +210,7 @@ validate_stripped_android_library() {
         exit 1
     fi
 
-    if ! has_16kb_load_alignment "$lib"; then
-        echo "Error: Android native library is not 16 KB page-size aligned: $lib"
-        readelf_program_headers "$lib" | grep LOAD || true
-        exit 1
-    fi
+    validate_16kb_elf_segments "$lib"
 }
 
 validate_android_symbols() {

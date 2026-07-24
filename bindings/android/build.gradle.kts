@@ -1,5 +1,6 @@
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.zip.ZipFile
 
 plugins {
     id("com.android.library") version "8.5.2"
@@ -97,52 +98,100 @@ fun String.parseElfAlignment(): Long {
     }
 }
 
+val releaseAar = layout.buildDirectory.file("outputs/aar/${project.name}-release.aar")
+
 val validateReleaseNativeLibraries by tasks.registering {
     group = "verification"
-    description = "Validates release JNI libraries are stripped and keep 16 KB LOAD alignment."
+    description = "Validates every final AAR JNI library is stripped and 16 KB compatible."
+    dependsOn("bundleReleaseAar")
+    inputs.file(releaseAar)
 
     doLast {
         val readelf = findReadelf()
-        val loadAlignmentRegex = Regex("""^\s*LOAD\s+.*\s+(0x[0-9a-fA-F]+|\d+)\s*$""")
+        val aar = releaseAar.get().asFile
+        if (!aar.isFile) {
+            throw GradleException("Android release AAR missing at '${aar.path}'")
+        }
 
-        androidNativeAbis.forEach { abi ->
-            val lib = layout.projectDirectory.file("src/main/jniLibs/$abi/libvss_rust_client_ffi.so").asFile
-            if (!lib.isFile) {
-                throw GradleException("Android native library missing at '${lib.path}'")
-            }
-
-            val (sectionsExit, sections) = runReadelf(readelf, "-S", lib.absolutePath)
-            if (sectionsExit != 0) {
-                throw GradleException("Unable to inspect Android native library sections: '${lib.path}'")
-            }
-            if (Regex("""\.debug_""").containsMatchIn(sections)) {
-                throw GradleException("Android release native library still contains .debug_* sections: '${lib.path}'")
-            }
-
-            val wideHeaders = runReadelf(readelf, "-W", "-l", lib.absolutePath)
-            val headers = if (wideHeaders.first == 0) {
-                wideHeaders.second
-            } else {
-                val fallbackHeaders = runReadelf(readelf, "-l", lib.absolutePath)
-                if (fallbackHeaders.first != 0) {
-                    throw GradleException("Unable to inspect Android native library headers: '${lib.path}'")
+        ZipFile(aar).use { zip ->
+            androidNativeAbis.forEach { abi ->
+                val libraryPath = "jni/$abi/libvss_rust_client_ffi.so"
+                val entry = zip.getEntry(libraryPath)
+                    ?: throw GradleException(
+                        "Android release AAR ABI '$abi' library missing at '$libraryPath' in '${aar.path}'"
+                    )
+                val lib = temporaryDir.resolve("$abi/libvss_rust_client_ffi.so")
+                lib.parentFile.mkdirs()
+                zip.getInputStream(entry).use { input ->
+                    lib.outputStream().use { output -> input.copyTo(output) }
                 }
-                fallbackHeaders.second
-            }
 
-            val alignments = headers
-                .lineSequence()
-                .mapNotNull { loadAlignmentRegex.matchEntire(it)?.groupValues?.get(1)?.parseElfAlignment() }
-                .toList()
+                val (sectionsExit, sections) = runReadelf(readelf, "-S", lib.absolutePath)
+                if (sectionsExit != 0) {
+                    throw GradleException(
+                        "Unable to inspect Android release AAR ABI '$abi' library '$libraryPath'"
+                    )
+                }
+                if (Regex("""\.debug_""").containsMatchIn(sections)) {
+                    throw GradleException(
+                        "Android release AAR ABI '$abi' library '$libraryPath' still contains .debug_* sections"
+                    )
+                }
 
-            if (alignments.isEmpty() || alignments.any { it < 16_384 }) {
-                throw GradleException("Android native library is not 16 KB page-size aligned: '${lib.path}'")
+                val wideHeaders = runReadelf(readelf, "-W", "-l", lib.absolutePath)
+                val headers = if (wideHeaders.first == 0) {
+                    wideHeaders.second
+                } else {
+                    val fallbackHeaders = runReadelf(readelf, "-l", lib.absolutePath)
+                    if (fallbackHeaders.first != 0) {
+                        throw GradleException(
+                            "Unable to inspect Android release AAR ABI '$abi' library '$libraryPath'"
+                        )
+                    }
+                    fallbackHeaders.second
+                }
+
+                val programHeaders = headers
+                    .lineSequence()
+                    .map { it.trim().split(Regex("""\s+""")) }
+                    .filter { it.isNotEmpty() }
+                    .toList()
+
+                val loadAlignments = programHeaders
+                    .filter { it.first() == "LOAD" }
+                    .map { it.last().parseElfAlignment() }
+                if (loadAlignments.isEmpty() || loadAlignments.any { it < 16_384 }) {
+                    val detected = loadAlignments.joinToString { "0x${it.toString(16)}" }
+                    throw GradleException(
+                        "Android release AAR ABI '$abi' library '$libraryPath' has PT_LOAD " +
+                            "alignment(s) [$detected]; every alignment must be at least 0x4000"
+                    )
+                }
+
+                val relroEnds = programHeaders
+                    .filter { it.first() == "GNU_RELRO" && it.size >= 6 }
+                    .map {
+                        val virtualAddress = it[2].parseElfAlignment()
+                        val memorySize = it[5].parseElfAlignment()
+                        virtualAddress + memorySize
+                    }
+                if (relroEnds.isEmpty() || relroEnds.any { it % 16_384 != 0L }) {
+                    val detected = relroEnds.joinToString { "0x${it.toString(16)}" }
+                    throw GradleException(
+                        "Android release AAR ABI '$abi' library '$libraryPath' has PT_GNU_RELRO " +
+                            "end(s) [$detected]; every end must be 0x4000-aligned"
+                    )
+                }
             }
         }
     }
 }
 
-tasks.matching { it.name == "bundleReleaseAar" || it.name.startsWith("publish") }.configureEach {
+tasks.named("check") {
+    dependsOn(validateReleaseNativeLibraries)
+}
+
+tasks.matching { it.name.startsWith("publish") }.configureEach {
     dependsOn(validateReleaseNativeLibraries)
 }
 
