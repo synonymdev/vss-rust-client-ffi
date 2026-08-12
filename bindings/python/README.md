@@ -13,11 +13,13 @@ pip install .
 ```python
 from vss_rust_client_ffi import *
 
-# Initialize VSS client
-vss_new_client(
+# Initialize VSS client with LNURL-auth so backups are encrypted with a seed-derived key
+vss_new_client_with_lnurl_auth(
     "https://vss.example.com",
     "my-store",
-    None
+    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    None,
+    "https://auth.example.com/lnurl",
 )
 
 # Store data
