@@ -1533,25 +1533,15 @@ public func vssListKeys(prefix: String?)async throws  -> [KeyVersion]  {
         )
 }
 /**
- * Creates a new VSS (Versioned Storage Service) client without authentication.
+ * Creates a new VSS client without authentication.
  *
- * This function establishes a connection to a VSS server and initializes
- * the global client for subsequent VSS operations.
- *
- * # Parameters
- * - `base_url`: The base URL of the VSS server (e.g., "https://vss.example.com")
- * - `store_id`: A unique identifier for the storage namespace/keyspace
+ * This constructor is rejected. Unauthenticated VSS previously encrypted
+ * application data with a public all-zero key, which provides no confidentiality.
+ * Use [`vss_new_client_with_lnurl_auth`] so backup data is encrypted with a
+ * seed-derived key.
  *
  * # Returns
- * Ok(()) if the client was created successfully, or a VssError if the client creation fails.
- *
- * # Example
- * ```
- * vss_new_client(
- * "https://vss.example.com".to_string(),
- * "my-app-store".to_string()
- * ).await?;
- * ```
+ * Always returns [`VssError::AuthError`].
  */
 public func vssNewClient(baseUrl: String, storeId: String)async throws   {
     return
@@ -1772,7 +1762,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys() != 21638) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 63115) {
+    if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 27788) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth() != 13999) {
