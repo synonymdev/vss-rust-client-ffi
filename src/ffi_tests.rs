@@ -30,6 +30,7 @@ mod ffi_tests {
         match result {
             Err(VssError::ConnectionError { error_details }) => {
                 assert!(error_details.contains("not initialized"));
+                assert!(error_details.contains("vss_new_client_with_lnurl_auth()"));
             }
             _ => panic!("Expected ConnectionError for uninitialized client"),
         }

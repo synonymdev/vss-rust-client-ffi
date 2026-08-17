@@ -56,7 +56,9 @@ fn try_get_client() -> Result<VssClient, VssError> {
     guard
         .as_ref()
         .ok_or(VssError::ConnectionError {
-            error_details: "VSS client not initialized. Call vss_new_client() first.".to_string(),
+            error_details:
+                "VSS client not initialized. Call vss_new_client_with_lnurl_auth() first."
+                    .to_string(),
         })
         .cloned()
 }
