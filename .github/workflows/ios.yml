@@ -1,0 +1,58 @@
+name: iOS Bindgen
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or SHA to build"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  ios-bindgen:
+    name: iOS Bindgen
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate Swift package manifest
+        run: swift package dump-package
+
+      - name: Generate iOS bindings and artifacts
+        run: ./build_ios.sh
+
+      - name: Verify iOS outputs
+        run: |
+          test -f bindings/ios/vss_rust_client_ffi.swift
+          test -f bindings/ios/vss_rust_client_ffiFFI.h
+          test -f bindings/ios/module.modulemap
+          test -d bindings/ios/VssRustClientFfi.xcframework
+          test -f bindings/ios/VssRustClientFfi.xcframework.zip
+          swift package compute-checksum bindings/ios/VssRustClientFfi.xcframework.zip
+
+      - name: Upload iOS generated outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: vss-ios-bindgen
+          path: |
+            bindings/ios/vss_rust_client_ffi.swift
+            bindings/ios/vss_rust_client_ffiFFI.h
+            bindings/ios/module.modulemap
+            bindings/ios/VssRustClientFfi.xcframework
+            bindings/ios/VssRustClientFfi.xcframework.zip
+          if-no-files-found: error
