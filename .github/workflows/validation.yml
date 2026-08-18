@@ -31,7 +31,7 @@ jobs:
           sudo apt-get install -y libdbus-1-dev pkg-config protobuf-compiler
 
       - name: Check shell scripts
-        run: bash -n build.sh build_ios.sh build_android.sh build_python.sh
+        run: bash -n build.sh build_ios.sh build_android.sh
 
       - name: Check Rust package
         run: cargo check --locked
