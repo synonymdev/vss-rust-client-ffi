@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -10,13 +10,13 @@ let url = "https://github.com/synonymdev/vss-rust-client-ffi/releases/download/\
 let package = Package(
     name: "vss-rust-client-ffi",
     platforms: [
-        .iOS(.v13),
-        .macOS(.v11),
+        .iOS(.v17),
     ],
     products: [
         .library(
             name: "VssRustClientFfi",
-            targets: ["VssRustClientFfi", "VssRustClientFfiFFI"]),
+            targets: ["VssRustClientFfi", "VssRustClientFfiFFI"]
+        ),
     ],
     targets: [
         .target(
@@ -29,6 +29,6 @@ let package = Package(
             name: "VssRustClientFfiFFI",
             url: url,
             checksum: checksum
-        )
+        ),
     ]
 )

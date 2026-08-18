@@ -41,9 +41,9 @@ jobs:
           test -f bindings/ios/vss_rust_client_ffi.swift
           test -f bindings/ios/vss_rust_client_ffiFFI.h
           test -f bindings/ios/module.modulemap
-          test -d bindings/ios/VssRustClientFfi.xcframework
-          test -f bindings/ios/VssRustClientFfi.xcframework.zip
-          swift package compute-checksum bindings/ios/VssRustClientFfi.xcframework.zip
+          test -d dist/ios/VssRustClientFfi.xcframework
+          test -f dist/ios/VssRustClientFfi.xcframework.zip
+          swift package compute-checksum dist/ios/VssRustClientFfi.xcframework.zip
 
       - name: Upload iOS generated outputs
         uses: actions/upload-artifact@v4
@@ -53,6 +53,6 @@ jobs:
             bindings/ios/vss_rust_client_ffi.swift
             bindings/ios/vss_rust_client_ffiFFI.h
             bindings/ios/module.modulemap
-            bindings/ios/VssRustClientFfi.xcframework
-            bindings/ios/VssRustClientFfi.xcframework.zip
+            dist/ios/VssRustClientFfi.xcframework
+            dist/ios/VssRustClientFfi.xcframework.zip
           if-no-files-found: error

@@ -15,7 +15,7 @@ Cross-platform FFI bindings for the [VSS (Versioned Storage Service) Rust Client
 # Basic build
 cargo build --release
 
-# Generate ALL bindings
+# Generate iOS and Android bindings
 ./build.sh all
 
 # Generate Swift bindings for iOS
@@ -23,9 +23,6 @@ cargo build --release
 
 # Generate Kotlin bindings for Android  
 ./build_android.sh
-
-# Generate Python bindings
-./build_python.sh
 ```
 
 ## Usage Examples
@@ -115,88 +112,6 @@ let allKeys = try await vssLdkListAllKeys()
 
 // Clean shutdown
 vssShutdownLdkClient()
-```
-
-### Python
-
-```python
-from vss_rust_client_ffi import *
-
-mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-passphrase = None
-store_id = vss_derive_store_id(
-    prefix="bitkit_v1_regtest",
-    mnemonic=mnemonic,
-    passphrase=passphrase
-)
-
-await vss_new_client_with_lnurl_auth(
-    "https://vss.example.com",
-    store_id,
-    mnemonic,
-    passphrase,
-    "https://auth.example.com/lnurl"
-)
-
-# Store data
-item = await vss_store("user-settings", b"{'theme': 'dark'}")
-print(f"Stored at version: {item.version}")
-
-# Retrieve data  
-item = await vss_get("user-settings")
-if item:
-    print(f"Retrieved: {item.value.decode()}")
-
-# List keys only (more efficient)
-keys = await vss_list_keys("user/")
-for kv in keys:
-    print(f"Key: {kv.key}, Version: {kv.version}")
-
-# Batch store multiple items
-items_to_store = [
-    KeyValue(key="config/theme", value=b"dark"),
-    KeyValue(key="config/lang", value=b"en")
-]
-stored_items = await vss_put_with_key_prefix(items_to_store)
-print(f"Stored {len(stored_items)} items")
-
-# Delete data
-was_deleted = await vss_delete("user-settings")
-print(f"Deleted: {was_deleted}")
-
-# Clean shutdown (optional)
-vss_shutdown_client()
-```
-
-#### Dedicated LDK Client (Python)
-
-```python
-# Initialize the dedicated LDK client (separate from the app client)
-await vss_new_ldk_client_with_lnurl_auth(
-    "https://vss.example.com",
-    store_id,
-    mnemonic,
-    passphrase,
-    "https://auth.example.com/lnurl"
-)
-
-# Read an ldk-node key
-item = await vss_ldk_get("network_graph", LdkNamespace.DEFAULT)
-
-# Store a key
-item = await vss_ldk_store("network_graph", graph_data, LdkNamespace.DEFAULT)
-
-# Delete a key
-was_deleted = await vss_ldk_delete("network_graph", LdkNamespace.DEFAULT)
-
-# List keys in a namespace
-keys = await vss_ldk_list_keys(LdkNamespace.MONITORS)
-
-# List all keys across all namespaces
-all_keys = await vss_ldk_list_all_keys()
-
-# Clean shutdown
-vss_shutdown_ldk_client()
 ```
 
 ### Kotlin (Android)
@@ -389,8 +304,10 @@ Error enum with detailed error information for different failure scenarios.
 ```
 
 Generates:
-- `bindings/ios/VssRustClientFfi.xcframework` - iOS framework
-- `bindings/ios/vss_rust_client_ffi.swift` - Swift bindings
+- `dist/ios/VssRustClientFfi.xcframework` - iOS framework
+- `dist/ios/VssRustClientFfi.xcframework.zip` - zipped SwiftPM binary artifact for release upload
+- `bindings/ios/vss_rust_client_ffi.swift` - Swift bindings source used by `Package.swift`
+- `bindings/ios/vss_rust_client_ffiFFI.h` and `bindings/ios/module.modulemap` - C interface files used by the Swift package
 
 ### Android Library  
 
@@ -399,17 +316,11 @@ Generates:
 ```
 
 Generates:
-- `bindings/android/vss_rust_client_ffi.kt` - Kotlin bindings
-- `bindings/android/jniLibs/` - Native libraries for all Android architectures
+- `bindings/android/src/main/kotlin/com/synonym/vssclient/vss_rust_client_ffi.kt` - Kotlin bindings
+- `bindings/android/src/main/jniLibs/` - native libraries for all Android architectures
+- `bindings/android/native-debug-symbols.zip` - native debug symbols for release metadata
 
-### Python Package
-
-```bash
-./build_python.sh
-```
-
-Generates:
-- `bindings/python/` - Python package with bindings and native library
+Generated iOS and Android artifacts are ignored by git and should be produced by the build scripts or CI instead of committed.
 
 ## Development
 
