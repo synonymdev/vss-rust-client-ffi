@@ -316,8 +316,11 @@ Generates:
 ```
 
 Generates:
-- `bindings/android/vss_rust_client_ffi.kt` - Kotlin bindings
-- `bindings/android/jniLibs/` - Native libraries for all Android architectures
+- `bindings/android/src/main/kotlin/com/synonym/vssclient/vss_rust_client_ffi.kt` - Kotlin bindings
+- `bindings/android/src/main/jniLibs/` - native libraries for all Android architectures
+- `bindings/android/native-debug-symbols.zip` - native debug symbols for release metadata
+
+Generated iOS and Android artifacts are ignored by git and should be produced by the build scripts or CI instead of committed.
 
 ## Development
 
