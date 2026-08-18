@@ -4,17 +4,25 @@ set -e  # Exit immediately if a command exits with a non-zero status.
 
 echo "Starting iOS build process..."
 
-# Remove previous builds and ensure clean state
-echo "Cleaning previous builds..."
-rm -rf bindings/ios/*
+# Define output directories
+IOS_BINDINGS_DIR="./bindings/ios"
+IOS_DIST_DIR="./dist/ios"
+XCFRAMEWORK_NAME="VssRustClientFfi.xcframework"
+XCFRAMEWORK_PATH="$IOS_DIST_DIR/$XCFRAMEWORK_NAME"
+XCFRAMEWORK_ZIP_PATH="$IOS_DIST_DIR/$XCFRAMEWORK_NAME.zip"
+
+# Remove previous release artifacts and ensure clean state
+echo "Cleaning previous release artifacts..."
+rm -rf "$IOS_DIST_DIR"
 rm -rf ios/
 
 # Create necessary directories
 echo "Creating build directories..."
-mkdir -p bindings/ios/
+mkdir -p "$IOS_BINDINGS_DIR"
+mkdir -p "$IOS_DIST_DIR"
 
 # Set iOS deployment target
-export IPHONEOS_DEPLOYMENT_TARGET=13.4
+export IPHONEOS_DEPLOYMENT_TARGET=17.0
 
 # Cargo Build
 echo "Building Rust libraries..."
@@ -41,33 +49,30 @@ cargo build --release --target=aarch64-apple-ios
 # Generate Swift bindings
 echo "Generating Swift bindings..."
 # First, ensure any existing generated files are removed
-rm -rf ./bindings/ios/vss_rust_client_ffi.swift
-rm -rf ./bindings/ios/vss_rust_client_ffiFFI.h
-rm -rf ./bindings/ios/vss_rust_client_ffiFFI.modulemap
-rm -rf ./bindings/ios/Headers
-rm -rf ./bindings/ios/ios-arm64
-rm -rf ./bindings/ios/ios-arm64-sim
+rm -f "$IOS_BINDINGS_DIR/vss_rust_client_ffi.swift"
+rm -f "$IOS_BINDINGS_DIR/vss_rust_client_ffiFFI.h"
+rm -f "$IOS_BINDINGS_DIR/vss_rust_client_ffiFFI.modulemap"
+rm -f "$IOS_BINDINGS_DIR/module.modulemap"
+rm -rf "$IOS_BINDINGS_DIR/Headers"
 
 cargo run --bin uniffi-bindgen generate \
     --library ./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a \
     --language swift \
-    --out-dir ./bindings/ios \
+    --out-dir "$IOS_BINDINGS_DIR" \
     || { echo "Failed to generate Swift bindings"; exit 1; }
 
 # Handle modulemap file
 echo "Handling modulemap file..."
-if [ -f bindings/ios/vss_rust_client_ffiFFI.modulemap ]; then
-    mv bindings/ios/vss_rust_client_ffiFFI.modulemap bindings/ios/module.modulemap
+if [ -f "$IOS_BINDINGS_DIR/vss_rust_client_ffiFFI.modulemap" ]; then
+    mv "$IOS_BINDINGS_DIR/vss_rust_client_ffiFFI.modulemap" "$IOS_BINDINGS_DIR/module.modulemap"
 else
     echo "Warning: modulemap file not found"
 fi
 
-# Clean up any existing XCFramework and temporary directories
-echo "Cleaning up existing XCFramework..."
-rm -rf "bindings/ios/VssRustClientFfi.xcframework"
-rm -rf "bindings/ios/Headers"
-rm -rf "bindings/ios/ios-arm64"
-rm -rf "bindings/ios/ios-arm64-sim"
+# Clean up any temporary directories
+echo "Cleaning up temporary directories..."
+rm -rf "$IOS_DIST_DIR/ios-arm64"
+rm -rf "$IOS_DIST_DIR/ios-arm64-sim"
 
 # Package each static library as a framework bundle.
 FRAMEWORK_NAME="vss_rust_client_ffiFFI"
@@ -78,8 +83,8 @@ create_framework() {
 
     mkdir -p "$framework_dir/Headers" "$framework_dir/Modules"
     cp "$library_path" "$framework_dir/$FRAMEWORK_NAME"
-    cp bindings/ios/vss_rust_client_ffiFFI.h "$framework_dir/Headers/"
-    sed 's/^module /framework module /' bindings/ios/module.modulemap > "$framework_dir/Modules/module.modulemap"
+    cp "$IOS_BINDINGS_DIR/vss_rust_client_ffiFFI.h" "$framework_dir/Headers/"
+    sed 's/^module /framework module /' "$IOS_BINDINGS_DIR/module.modulemap" > "$framework_dir/Modules/module.modulemap"
     cat > "$framework_dir/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -103,32 +108,32 @@ EOF
 }
 
 echo "Creating framework bundles..."
-mkdir -p "bindings/ios/ios-arm64"
-mkdir -p "bindings/ios/ios-arm64-sim"
-create_framework "bindings/ios/ios-arm64" "./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a"
-create_framework "bindings/ios/ios-arm64-sim" "./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a"
+mkdir -p "$IOS_DIST_DIR/ios-arm64"
+mkdir -p "$IOS_DIST_DIR/ios-arm64-sim"
+create_framework "$IOS_DIST_DIR/ios-arm64" "./target/aarch64-apple-ios/release/libvss_rust_client_ffi.a"
+create_framework "$IOS_DIST_DIR/ios-arm64-sim" "./target/aarch64-apple-ios-sim/release/libvss_rust_client_ffi.a"
 
 # Create XCFramework
 echo "Creating XCFramework..."
 xcodebuild -create-xcframework \
-    -framework "bindings/ios/ios-arm64-sim/$FRAMEWORK_NAME.framework" \
-    -framework "bindings/ios/ios-arm64/$FRAMEWORK_NAME.framework" \
-    -output "bindings/ios/VssRustClientFfi.xcframework" \
+    -framework "$IOS_DIST_DIR/ios-arm64-sim/$FRAMEWORK_NAME.framework" \
+    -framework "$IOS_DIST_DIR/ios-arm64/$FRAMEWORK_NAME.framework" \
+    -output "$XCFRAMEWORK_PATH" \
     || { echo "Failed to create XCFramework"; exit 1; }
 
 # Clean up temporary directories
 echo "Cleaning up temporary directories..."
-rm -rf "bindings/ios/ios-arm64"
-rm -rf "bindings/ios/ios-arm64-sim"
+rm -rf "$IOS_DIST_DIR/ios-arm64"
+rm -rf "$IOS_DIST_DIR/ios-arm64-sim"
 
 # Create zip file for distribution and checksum calculation
 echo "Creating XCFramework zip file..."
-rm -f ./bindings/ios/VssRustClientFfi.xcframework.zip
-ditto -c -k --sequesterRsrc --keepParent ./bindings/ios/VssRustClientFfi.xcframework ./bindings/ios/VssRustClientFfi.xcframework.zip || { echo "Failed to create zip file"; exit 1; }
+rm -f "$XCFRAMEWORK_ZIP_PATH"
+ditto -c -k --sequesterRsrc --keepParent "$XCFRAMEWORK_PATH" "$XCFRAMEWORK_ZIP_PATH" || { echo "Failed to create zip file"; exit 1; }
 
 # Compute checksum
 echo "Computing checksum..."
-CHECKSUM=`swift package compute-checksum ./bindings/ios/VssRustClientFfi.xcframework.zip` || { echo "Failed to compute checksum"; exit 1; }
+CHECKSUM=`swift package compute-checksum "$XCFRAMEWORK_ZIP_PATH"` || { echo "Failed to compute checksum"; exit 1; }
 echo "New checksum: $CHECKSUM"
 
 # Update Package.swift with the new checksum using Python script
