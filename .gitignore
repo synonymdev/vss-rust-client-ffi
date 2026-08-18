@@ -1,7 +1,13 @@
 .idea/
 .DS_Store
 /target/
+
+# Generated UniFFI bindgen outputs
 bindings/android/native-debug-symbols.zip
+bindings/android/src/main/jniLibs/
+bindings/android/src/main/kotlin/com/synonym/vssclient/vss_rust_client_ffi.kt
+/dist/
+
 .rust-analyzer/
 .cargo/
 # Default ignored files
@@ -11,7 +17,6 @@ bindings/android/native-debug-symbols.zip
 /httpRequests/
 .ai
 .build
-/dist/
 
 # SwiftPM workspace files
 .swiftpm/
