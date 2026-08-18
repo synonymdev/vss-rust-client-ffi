@@ -284,7 +284,8 @@ vssShutdownLdkClient()
 ### Client Management
 
 #### `vssNewClient(baseUrl: String, storeId: String) -> Void`
-Initialize the global VSS client connection without authentication.
+This constructor is rejected and always returns `AuthError`. Unauthenticated VSS does not
+have a seed-derived encryption key. Use `vssNewClientWithLnurlAuth` instead.
 
 - `baseUrl`: VSS server URL (e.g., "https://vss.example.com")
 - `storeId`: Unique identifier for your storage namespace  
