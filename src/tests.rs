@@ -12,34 +12,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_vss_client_creation() {
-        let result = VssClient::new(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string()
-        ).await;
+        let result = VssClient::new(MOCK_BASE_URL.to_string(), TEST_STORE_ID.to_string()).await;
 
-        assert!(result.is_ok());
+        assert!(matches!(result, Err(VssError::AuthError { .. })));
     }
 
     #[tokio::test]
     async fn test_vss_client_creation_empty_base_url() {
-        let result = VssClient::new(
-            "".to_string(),
-            TEST_STORE_ID.to_string(),
-        ).await;
+        let result = VssClient::new("".to_string(), TEST_STORE_ID.to_string()).await;
 
-        // Should still create client successfully, errors happen on actual operations
-        assert!(result.is_ok());
+        assert!(matches!(result, Err(VssError::AuthError { .. })));
     }
 
     #[tokio::test]
     async fn test_vss_client_creation_empty_store_id() {
-        let result = VssClient::new(
-            MOCK_BASE_URL.to_string(),
-            "".to_string(),
-        ).await;
+        let result = VssClient::new(MOCK_BASE_URL.to_string(), "".to_string()).await;
 
-        // Should still create client successfully, errors happen on actual operations
-        assert!(result.is_ok());
+        assert!(matches!(result, Err(VssError::AuthError { .. })));
     }
 
     #[tokio::test]
@@ -49,8 +38,9 @@ mod tests {
             MOCK_BASE_URL.to_string(),
             TEST_STORE_ID.to_string(),
             seed,
-            "https://auth.example.com/lnurl".to_string()
-        ).await;
+            "https://auth.example.com/lnurl".to_string(),
+        )
+        .await;
 
         // Should create client successfully (auth errors happen on actual requests)
         assert!(result.is_ok());
@@ -62,13 +52,13 @@ mod tests {
 
         // Test that our error types can be created
         let connection_err = VssError::ConnectionError {
-            error_details: "Test connection error".to_string()
+            error_details: "Test connection error".to_string(),
         };
         let store_err = VssError::StoreError {
-            error_details: "Test store error".to_string()
+            error_details: "Test store error".to_string(),
         };
         let get_err = VssError::GetError {
-            error_details: "Test get error".to_string()
+            error_details: "Test get error".to_string(),
         };
 
         // Test error display
@@ -91,7 +81,9 @@ mod tests {
         assert!(store_id1.starts_with("test_"));
 
         // Test passphrase handling
-        let with_passphrase = vss_derive_store_id(prefix.clone(), mnemonic.clone(), Some("pass".to_string())).unwrap();
+        let with_passphrase =
+            vss_derive_store_id(prefix.clone(), mnemonic.clone(), Some("pass".to_string()))
+                .unwrap();
         assert_ne!(store_id1, with_passphrase);
 
         // Test invalid mnemonic
@@ -100,10 +92,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_key_derivation_app_differs_from_ldk() {
+        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
         use bitcoin::bip32::{ChildNumber, Xpriv};
         use bitcoin::secp256k1::Secp256k1;
         use bitcoin::Network;
-        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
 
         let full_seed: [u8; 64] = [42u8; 64];
         let truncated_seed: [u8; 32] = full_seed[..32].try_into().unwrap();
@@ -149,15 +141,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_client_without_auth_has_no_keys() {
-        let client = VssClient::new(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-        )
-        .await
-        .unwrap();
+    async fn test_unauthenticated_client_is_rejected() {
+        let result = VssClient::new(MOCK_BASE_URL.to_string(), TEST_STORE_ID.to_string()).await;
 
-        assert!(client.app_key_obfuscator.is_none());
+        assert!(matches!(result, Err(VssError::AuthError { .. })));
     }
 
     #[tokio::test]
@@ -196,10 +183,10 @@ mod tests {
 
     #[test]
     fn test_ldk_seed_derivation_is_network_independent() {
+        use bip39::Mnemonic;
         use bitcoin::bip32::{ChildNumber, Xpriv};
         use bitcoin::secp256k1::Secp256k1;
         use bitcoin::Network;
-        use bip39::Mnemonic;
         use std::str::FromStr;
 
         let mnemonic = Mnemonic::from_str(
@@ -229,11 +216,11 @@ mod tests {
 
     #[test]
     fn test_ldk_obfuscation_roundtrip() {
+        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
+        use bip39::Mnemonic;
         use bitcoin::bip32::{ChildNumber, Xpriv};
         use bitcoin::secp256k1::Secp256k1;
         use bitcoin::Network;
-        use bip39::Mnemonic;
-        use crate::implementation::derive_data_encryption_and_obfuscation_keys;
         use std::str::FromStr;
         use vss_client_ng::util::key_obfuscator::KeyObfuscator;
 
@@ -289,7 +276,7 @@ mod tests {
 
     #[test]
     fn test_types_creation() {
-        use crate::{VssItem, KeyValue, KeyVersion};
+        use crate::{KeyValue, KeyVersion, VssItem};
 
         // Test creating VssItem
         let item = VssItem {
@@ -331,9 +318,11 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires live VSS server"]
     async fn integration_test_store_and_get() {
-        let client = VssClient::new(
+        let client = VssClient::new_with_lnurl_auth(
             INTEGRATION_BASE_URL.to_string(),
             INTEGRATION_STORE_ID.to_string(),
+            [42u8; 64],
+            "https://your-lnurl-auth-server.com".to_string(),
         ).await.expect("Failed to create client");
 
         let key = format!("integration-test-{}", std::time::SystemTime::now()
