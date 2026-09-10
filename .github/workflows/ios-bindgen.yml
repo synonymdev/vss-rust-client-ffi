@@ -1,0 +1,96 @@
+name: iOS Bindgen
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or SHA to build"
+        required: false
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios-bindgen:
+    name: iOS Bindgen
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-targets: false
+
+      - name: Validate Swift package manifest
+        run: swift package dump-package >/dev/null
+
+      - name: Generate iOS bindings and artifacts
+        run: ./build_ios.sh
+
+      - name: Verify iOS outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            bindings/ios/vss_rust_client_ffi.swift
+            bindings/ios/vss_rust_client_ffiFFI.h
+            bindings/ios/module.modulemap
+            dist/ios/VssRustClientFfi.xcframework
+            dist/ios/VssRustClientFfi.xcframework.zip
+          )
+
+          for path in "${required[@]}"; do
+            if [ ! -e "$path" ]; then
+              echo "::error::Missing generated iOS output: $path"
+              exit 1
+            fi
+          done
+
+          test -s dist/ios/VssRustClientFfi.xcframework.zip
+          swift package compute-checksum dist/ios/VssRustClientFfi.xcframework.zip
+
+      - name: Check committed iOS interface files
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_sources=(
+            bindings/ios/vss_rust_client_ffi.swift
+            bindings/ios/vss_rust_client_ffiFFI.h
+            bindings/ios/module.modulemap
+          )
+
+          if ! git diff --quiet -- "${generated_sources[@]}"; then
+            echo "::error::Committed iOS interface files are stale. Run './build_ios.sh', restore Package.swift unless preparing a release, and commit the updated interface files."
+            git diff --name-only -- "${generated_sources[@]}"
+            exit 1
+          fi
+
+      - name: Upload iOS generated outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: vss-ios-bindgen
+          path: |
+            bindings/ios/vss_rust_client_ffi.swift
+            bindings/ios/vss_rust_client_ffiFFI.h
+            bindings/ios/module.modulemap
+            dist/ios/VssRustClientFfi.xcframework
+            dist/ios/VssRustClientFfi.xcframework.zip
+          if-no-files-found: error

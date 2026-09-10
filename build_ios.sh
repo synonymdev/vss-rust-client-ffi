@@ -129,7 +129,11 @@ rm -rf "$IOS_DIST_DIR/ios-arm64-sim"
 # Create zip file for distribution and checksum calculation
 echo "Creating XCFramework zip file..."
 rm -f "$XCFRAMEWORK_ZIP_PATH"
-ditto -c -k --sequesterRsrc --keepParent "$XCFRAMEWORK_PATH" "$XCFRAMEWORK_ZIP_PATH" || { echo "Failed to create zip file"; exit 1; }
+find "$XCFRAMEWORK_PATH" -exec touch -t 198001010000 {} \;
+(
+    cd "$IOS_DIST_DIR"
+    find "$XCFRAMEWORK_NAME" -type f -print | LC_ALL=C sort | zip -X -q "$XCFRAMEWORK_NAME.zip" -@
+) || { echo "Failed to create zip file"; exit 1; }
 
 # Compute checksum
 echo "Computing checksum..."
