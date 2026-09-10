@@ -2,10 +2,46 @@ name: Android Bindgen
 
 on:
   pull_request:
+    paths:
+      - '.cargo/**'
+      - '.github/workflows/android-bindgen.yml'
+      - '**/Cargo.lock'
+      - '**/Cargo.toml'
+      - '**/bindings/android/**'
+      - '**/build*.sh'
+      - '**/build.rs'
+      - '**/*.gradle*'
+      - '**/*.rs'
+      - '**/*.udl'
+      - '**/gradle/**'
+      - '**/gradle.properties'
+      - '**/gradlew*'
+      - '**/settings.gradle*'
+      - '**/uniffi*.toml'
+      - 'rust-toolchain*'
+      - 'vendor/**'
   push:
     branches:
       - master
       - main
+    paths:
+      - '.cargo/**'
+      - '.github/workflows/android-bindgen.yml'
+      - '**/Cargo.lock'
+      - '**/Cargo.toml'
+      - '**/bindings/android/**'
+      - '**/build*.sh'
+      - '**/build.rs'
+      - '**/*.gradle*'
+      - '**/*.rs'
+      - '**/*.udl'
+      - '**/gradle/**'
+      - '**/gradle.properties'
+      - '**/gradlew*'
+      - '**/settings.gradle*'
+      - '**/uniffi*.toml'
+      - 'rust-toolchain*'
+      - 'vendor/**'
   workflow_dispatch:
     inputs:
       ref:
