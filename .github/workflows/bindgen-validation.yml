@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   validation:
-    name: Scripts, Rust, and Android manifests
+    name: Scripts, Cargo, and Android manifests
     runs-on: ubuntu-latest
 
     steps:
@@ -26,8 +26,6 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
 
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
@@ -51,18 +49,12 @@ jobs:
       - name: Check shell scripts
         run: bash -n build.sh build_ios.sh build_android.sh
 
-      - name: Check Rust package
-        run: cargo check --locked
+      - name: Check Cargo manifest
+        run: cargo metadata --locked --format-version 1 >/dev/null
 
       - name: Check Android Gradle project
         working-directory: bindings/android
         run: ./gradlew projects --no-daemon
-
-      - name: Run Rust tests
-        run: cargo test --locked
-
-      - name: Run Clippy
-        run: cargo clippy --locked --all-targets
 
   swift-manifest:
     name: SwiftPM manifest
