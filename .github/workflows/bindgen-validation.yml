@@ -44,7 +44,9 @@ jobs:
           sudo apt-get install -y libdbus-1-dev pkg-config protobuf-compiler
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
 
       - name: Check shell scripts
         run: bash -n build.sh build_ios.sh build_android.sh
