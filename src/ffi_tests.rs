@@ -23,6 +23,7 @@ mod ffi_tests {
 
     #[tokio::test]
     async fn test_ffi_error_no_client() {
+        let _guard = crate::FFI_TEST_LOCK.lock().await;
         // Don't initialize client, should get error
         let result = vss_get("any-key".to_string()).await;
 

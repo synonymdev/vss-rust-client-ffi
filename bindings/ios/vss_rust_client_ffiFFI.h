@@ -279,7 +279,7 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_ldk_get(RustBuffer key, RustBuff
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_LIST_ALL_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_LIST_ALL_KEYS
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_ldk_list_all_keys(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_LDK_LIST_KEYS
@@ -317,6 +317,11 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth(RustB
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_new_ldk_client_with_lnurl_auth(RustBuffer base_url, RustBuffer store_id, RustBuffer mnemonic, RustBuffer passphrase, RustBuffer lnurl_auth_server_url
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_PUT_CONDITIONAL
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_PUT_CONDITIONAL
+uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_put_conditional(RustBuffer items
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_PUT_WITH_KEY_PREFIX
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_PUT_WITH_KEY_PREFIX
 uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(RustBuffer items
@@ -325,13 +330,13 @@ uint64_t uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(RustBuffer i
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_SHUTDOWN_CLIENT
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_SHUTDOWN_CLIENT
 void uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(RustCallStatus *_Nonnull out_status
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_SHUTDOWN_LDK_CLIENT
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_SHUTDOWN_LDK_CLIENT
 void uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_ldk_client(RustCallStatus *_Nonnull out_status
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_FN_FUNC_VSS_STORE
@@ -622,109 +627,115 @@ void ffi_vss_rust_client_ffi_rust_future_complete_void(uint64_t handle, RustCall
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DELETE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DELETE
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_delete(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DERIVE_STORE_ID
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_DERIVE_STORE_ID
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_derive_store_id(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_GET
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_GET
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_get(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_DELETE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_DELETE
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_delete(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_GET
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_GET
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_get(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_ALL_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_ALL_KEYS
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_all_keys(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_LIST_KEYS
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_list_keys(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_STORE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LDK_STORE
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_ldk_store(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_KEYS
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_LIST_KEYS
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_NEW_CLIENT
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_NEW_CLIENT
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_new_client(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_NEW_CLIENT_WITH_LNURL_AUTH
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_NEW_CLIENT_WITH_LNURL_AUTH
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_NEW_LDK_CLIENT_WITH_LNURL_AUTH
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_NEW_LDK_CLIENT_WITH_LNURL_AUTH
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_new_ldk_client_with_lnurl_auth(void
-    
+
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_PUT_CONDITIONAL
+#define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_PUT_CONDITIONAL
+uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_put_conditional(void
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_PUT_WITH_KEY_PREFIX
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_PUT_WITH_KEY_PREFIX
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_SHUTDOWN_CLIENT
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_SHUTDOWN_CLIENT
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_SHUTDOWN_LDK_CLIENT
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_SHUTDOWN_LDK_CLIENT
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_ldk_client(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_STORE
 #define UNIFFI_FFIDEF_UNIFFI_VSS_RUST_CLIENT_FFI_CHECKSUM_FUNC_VSS_STORE
 uint16_t uniffi_vss_rust_client_ffi_checksum_func_vss_store(void
-    
+
 );
 #endif
 #ifndef UNIFFI_FFIDEF_FFI_VSS_RUST_CLIENT_FFI_UNIFFI_CONTRACT_VERSION
 #define UNIFFI_FFIDEF_FFI_VSS_RUST_CLIENT_FFI_UNIFFI_CONTRACT_VERSION
 uint32_t ffi_vss_rust_client_ffi_uniffi_contract_version(void
-    
+
 );
 #endif
 

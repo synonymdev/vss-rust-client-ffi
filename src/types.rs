@@ -13,6 +13,16 @@ pub struct KeyValue {
     pub value: Vec<u8>,
 }
 
+/// An encrypted write conditioned on the server's current key version.
+/// Use zero to create a key that must not exist. Existing keys require their
+/// positive version from `vss_get`; unconditional writes are not accepted.
+#[derive(Debug, Clone, uniffi::Record, Serialize, Deserialize)]
+pub struct ConditionalKeyValue {
+    pub key: String,
+    pub value: Vec<u8>,
+    pub expected_version: i64,
+}
+
 #[derive(Debug, Clone, uniffi::Record, Serialize, Deserialize)]
 pub struct ListKeyVersionsResponse {
     pub key_versions: Vec<KeyVersion>,

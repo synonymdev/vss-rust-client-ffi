@@ -61,6 +61,16 @@ cargo run --bin uniffi-bindgen generate \
     --out-dir "$IOS_BINDINGS_DIR" \
     || { echo "Failed to generate Swift bindings"; exit 1; }
 
+# Keep generated interfaces reproducible without trailing whitespace.
+python3 - "$IOS_BINDINGS_DIR" <<'PYTHON'
+from pathlib import Path
+import sys
+
+for name in ("vss_rust_client_ffi.swift", "vss_rust_client_ffiFFI.h"):
+    path = Path(sys.argv[1]) / name
+    path.write_text("\n".join(line.rstrip(" \t") for line in path.read_text().splitlines()) + "\n")
+PYTHON
+
 # Handle modulemap file
 echo "Handling modulemap file..."
 if [ -f "$IOS_BINDINGS_DIR/vss_rust_client_ffiFFI.modulemap" ]; then
