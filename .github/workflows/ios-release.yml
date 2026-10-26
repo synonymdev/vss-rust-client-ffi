@@ -1,0 +1,79 @@
+name: iOS Release Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to prepare (e.g., 0.5.23)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios-release-artifact:
+    name: iOS Release Candidate Artifact
+    runs-on: macos-latest
+
+    steps:
+      - name: Normalize version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="$VERSION"
+          if [[ "$TAG" != v* ]]; then
+            TAG="v$TAG"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set SwiftPM release tag
+        run: python3 ./update_package.py --tag "${{ steps.version.outputs.tag }}"
+
+      - name: Generate iOS release artifact
+        run: ./build_ios.sh
+
+      - name: Read generated manifest
+        id: manifest
+        run: |
+          python3 scripts/verify_swiftpm_binary_artifact.py manifest \
+            --release-tag "${{ steps.version.outputs.tag }}" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Verify iOS release artifact
+        id: artifact
+        run: |
+          python3 scripts/verify_swiftpm_binary_artifact.py verify \
+            --release-tag "${{ steps.version.outputs.tag }}" \
+            --expected-checksum "${{ steps.manifest.outputs.checksum }}" \
+            --github-output "$GITHUB_OUTPUT" \
+            --github-summary "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo ""
+            echo "## Release preparation"
+            echo ""
+            echo "1. Download the workflow artifact \`vss-ios-release-candidate-${{ steps.version.outputs.version }}\`."
+            echo "2. Commit the generated \`Package.swift\` and binding changes needed for the release."
+            echo "3. Tag that commit as \`${{ steps.version.outputs.tag }}\`."
+            echo "4. Upload \`VssRustClientFfi.xcframework.zip\` from this workflow artifact to the GitHub release."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vss-ios-release-candidate-${{ steps.version.outputs.version }}
+          path: |
+            bindings/ios/VssRustClientFfi.xcframework.zip
+            bindings/ios/module.modulemap
+            bindings/ios/vss_rust_client_ffi.swift
+            bindings/ios/vss_rust_client_ffiFFI.h
+            Package.swift
+          if-no-files-found: error
