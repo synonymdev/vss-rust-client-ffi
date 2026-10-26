@@ -1,3 +1,4 @@
+mod conditional;
 mod errors;
 #[cfg(test)]
 mod ffi_tests;
@@ -21,6 +22,9 @@ use tokio::runtime::Runtime;
 
 static RUNTIME: OnceCell<Runtime> = OnceCell::new();
 static VSS_CLIENT: OnceCell<Arc<Mutex<Option<VssClient>>>> = OnceCell::new();
+#[cfg(test)]
+static FFI_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 static LDK_CLIENT: OnceCell<Arc<Mutex<Option<LdkVssClient>>>> = OnceCell::new();
 
 // Helper macro to handle async execution in both test and production environments
@@ -281,6 +285,28 @@ pub async fn vss_put_with_key_prefix(items: Vec<KeyValue>) -> Result<Vec<VssItem
     execute_async!(async move {
         let client = try_get_client()?;
         client.put_with_key_prefix(items).await
+    })
+}
+
+/// Atomically writes encrypted values if all supplied key versions still match.
+/// Returns the acknowledged resulting versions (expected + 1). Sends at most
+/// one mutation request, without redirects or automatic transport retries.
+///
+/// Persist candidate values and expected versions before calling. On an unknown
+/// outcome or cancellation, read and compare the exact candidate before retrying;
+/// never replace it with newly captured state and call that a retry. A conflict
+/// requires reconciliation, not an unconditional overwrite.
+///
+/// Only use keys whose writers all follow conditional versioning and never
+/// delete/recreate them: legacy unconditional writes reset versions to one.
+/// This API does not enforce backup migration or exclude legacy clients.
+#[uniffi::export]
+pub async fn vss_put_conditional(
+    items: Vec<ConditionalKeyValue>,
+) -> Result<Vec<KeyVersion>, ConditionalWriteError> {
+    execute_async!(async move {
+        let client = try_get_client().map_err(|_| ConditionalWriteError::ClientNotInitialized)?;
+        client.put_conditional(items).await
     })
 }
 

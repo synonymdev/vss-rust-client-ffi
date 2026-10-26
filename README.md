@@ -27,6 +27,32 @@ cargo build --release
 
 ## Usage Examples
 
+### Conditional backup transactions
+
+`vss_put_conditional` (Swift `vssPutConditional`, Kotlin `vssPutConditional`)
+accepts `ConditionalKeyValue` records with a key, plaintext value and expected
+server version. Zero creates a key that must not exist; a positive version from
+`vss_get` updates an existing key. Every key must match or the server rejects the
+whole transaction. The acknowledged result contains each key's resulting version
+(expected version plus one). Values use the existing seed-derived encryption and
+key-bound authentication.
+
+Save the complete candidate values and expected versions durably before sending.
+This operation makes one mutation attempt, with transport retries and redirects
+disabled. `Conflict` means a version did not match, while `OutcomeUnknown` means
+the transaction may have committed. Cancellation also leaves an uncertain outcome.
+After uncertainty, read and compare the retained candidate under the original
+wallet identity before deciding whether to retry. Never replace the candidate
+with newly captured data or fall back to an unconditional write. A client replacement
+does not transfer an in-flight transaction to the replacement client's store.
+
+Use this API only for keys whose writers consistently use conditional versions
+and do not delete/recreate those keys. Legacy unconditional writes reset key
+versions to one, so conditional writes alone cannot safely migrate a legacy wallet
+or exclude old clients. Migration policy, immutable component references, causal
+snapshot consistency and restore gates are application/server responsibilities.
+This API does not enable a new Bitkit backup format.
+
 ### Swift (iOS)
 
 ```swift

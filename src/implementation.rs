@@ -111,8 +111,9 @@ impl EntropySource for RandEntropySource {
 #[derive(Clone)]
 pub struct VssClient {
     inner: Arc<ExternalVssClient<CustomRetryPolicy>>,
-    store_id: String,
-    storable_builder: Arc<StorableBuilder<RandEntropySource>>,
+    pub(crate) conditional_inner: Arc<ExternalVssClient<crate::conditional::SingleAttempt>>,
+    pub(crate) store_id: String,
+    pub(crate) storable_builder: Arc<StorableBuilder<RandEntropySource>>,
     pub(crate) app_data_encryption_key: [u8; 32],
     pub(crate) app_key_obfuscator: Option<Arc<KeyObfuscator>>,
 }
@@ -198,7 +199,7 @@ impl VssClient {
     }
 
     /// Internal method to create a client with any header provider
-    async fn new_with_header_provider(
+    pub(crate) async fn new_with_header_provider(
         base_url: String,
         store_id: String,
         header_provider: Arc<dyn VssHeaderProvider>,
@@ -217,6 +218,8 @@ impl VssClient {
                 )
             }) as _);
 
+        let conditional_inner =
+            crate::conditional::client(&base_url, Arc::clone(&header_provider))?;
         let client = ExternalVssClient::new_with_headers(base_url, retry_policy, header_provider);
 
         let storable_builder = Arc::new(StorableBuilder::new(RandEntropySource));
@@ -230,6 +233,7 @@ impl VssClient {
 
         Ok(VssClient {
             inner: Arc::new(client),
+            conditional_inner: Arc::new(conditional_inner),
             store_id,
             storable_builder,
             app_data_encryption_key,

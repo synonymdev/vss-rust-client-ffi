@@ -497,6 +497,89 @@ fileprivate struct FfiConverterData: FfiConverterRustBuffer {
 }
 
 
+/**
+ * An encrypted write conditioned on the server's current key version.
+ * Use zero to create a key that must not exist. Existing keys require their
+ * positive version from `vss_get`; unconditional writes are not accepted.
+ */
+public struct ConditionalKeyValue {
+    public var key: String
+    public var value: Data
+    public var expectedVersion: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(key: String, value: Data, expectedVersion: Int64) {
+        self.key = key
+        self.value = value
+        self.expectedVersion = expectedVersion
+    }
+}
+
+#if compiler(>=6)
+extension ConditionalKeyValue: Sendable {}
+#endif
+
+
+extension ConditionalKeyValue: Equatable, Hashable {
+    public static func ==(lhs: ConditionalKeyValue, rhs: ConditionalKeyValue) -> Bool {
+        if lhs.key != rhs.key {
+            return false
+        }
+        if lhs.value != rhs.value {
+            return false
+        }
+        if lhs.expectedVersion != rhs.expectedVersion {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(key)
+        hasher.combine(value)
+        hasher.combine(expectedVersion)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeConditionalKeyValue: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ConditionalKeyValue {
+        return
+            try ConditionalKeyValue(
+                key: FfiConverterString.read(from: &buf),
+                value: FfiConverterData.read(from: &buf),
+                expectedVersion: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ConditionalKeyValue, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.key, into: &buf)
+        FfiConverterData.write(value.value, into: &buf)
+        FfiConverterInt64.write(value.expectedVersion, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConditionalKeyValue_lift(_ buf: RustBuffer) throws -> ConditionalKeyValue {
+    return try FfiConverterTypeConditionalKeyValue.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConditionalKeyValue_lower(_ value: ConditionalKeyValue) -> RustBuffer {
+    return FfiConverterTypeConditionalKeyValue.lower(value)
+}
+
+
 public struct KeyValue {
     public var key: String
     public var value: Data
@@ -540,7 +623,7 @@ public struct FfiConverterTypeKeyValue: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> KeyValue {
         return
             try KeyValue(
-                key: FfiConverterString.read(from: &buf), 
+                key: FfiConverterString.read(from: &buf),
                 value: FfiConverterData.read(from: &buf)
         )
     }
@@ -610,7 +693,7 @@ public struct FfiConverterTypeKeyVersion: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> KeyVersion {
         return
             try KeyVersion(
-                key: FfiConverterString.read(from: &buf), 
+                key: FfiConverterString.read(from: &buf),
                 version: FfiConverterInt64.read(from: &buf)
         )
     }
@@ -748,8 +831,8 @@ public struct FfiConverterTypeVssItem: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> VssItem {
         return
             try VssItem(
-                key: FfiConverterString.read(from: &buf), 
-                value: FfiConverterData.read(from: &buf), 
+                key: FfiConverterString.read(from: &buf),
+                value: FfiConverterData.read(from: &buf),
                 version: FfiConverterInt64.read(from: &buf)
         )
     }
@@ -776,11 +859,115 @@ public func FfiConverterTypeVssItem_lower(_ value: VssItem) -> RustBuffer {
     return FfiConverterTypeVssItem.lower(value)
 }
 
+
+/**
+ * Conditional writes never replay a mutation automatically. An unknown outcome
+ * requires reading the candidate keys before deciding whether another write is safe.
+ */
+public enum ConditionalWriteError: Swift.Error {
+
+
+
+    case ClientNotInitialized
+    case InvalidInput(reason: String
+    )
+    case Conflict
+    case Rejected
+    case OutcomeUnknown
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeConditionalWriteError: FfiConverterRustBuffer {
+    typealias SwiftType = ConditionalWriteError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ConditionalWriteError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+
+
+
+        case 1: return .ClientNotInitialized
+        case 2: return .InvalidInput(
+            reason: try FfiConverterString.read(from: &buf)
+            )
+        case 3: return .Conflict
+        case 4: return .Rejected
+        case 5: return .OutcomeUnknown
+
+         default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: ConditionalWriteError, into buf: inout [UInt8]) {
+        switch value {
+
+
+
+
+
+        case .ClientNotInitialized:
+            writeInt(&buf, Int32(1))
+
+
+        case let .InvalidInput(reason):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(reason, into: &buf)
+
+
+        case .Conflict:
+            writeInt(&buf, Int32(3))
+
+
+        case .Rejected:
+            writeInt(&buf, Int32(4))
+
+
+        case .OutcomeUnknown:
+            writeInt(&buf, Int32(5))
+
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConditionalWriteError_lift(_ buf: RustBuffer) throws -> ConditionalWriteError {
+    return try FfiConverterTypeConditionalWriteError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConditionalWriteError_lower(_ value: ConditionalWriteError) -> RustBuffer {
+    return FfiConverterTypeConditionalWriteError.lower(value)
+}
+
+
+extension ConditionalWriteError: Equatable, Hashable {}
+
+
+
+
+extension ConditionalWriteError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
+
+
+
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 
 public enum LdkNamespace {
-    
+
     case `default`
     case monitors
     case monitorUpdates(monitorId: String
@@ -802,40 +989,40 @@ public struct FfiConverterTypeLdkNamespace: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LdkNamespace {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .`default`
-        
+
         case 2: return .monitors
-        
+
         case 3: return .monitorUpdates(monitorId: try FfiConverterString.read(from: &buf)
         )
-        
+
         case 4: return .archivedMonitors
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: LdkNamespace, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .`default`:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .monitors:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case let .monitorUpdates(monitorId):
             writeInt(&buf, Int32(3))
             FfiConverterString.write(monitorId, into: &buf)
-            
-        
+
+
         case .archivedMonitors:
             writeInt(&buf, Int32(4))
-        
+
         }
     }
 }
@@ -866,8 +1053,8 @@ extension LdkNamespace: Equatable, Hashable {}
 
 public enum VssError: Swift.Error {
 
-    
-    
+
+
     case ConnectionError(errorDetails: String
     )
     case AuthError(errorDetails: String
@@ -901,9 +1088,9 @@ public struct FfiConverterTypeVssError: FfiConverterRustBuffer {
         let variant: Int32 = try readInt(&buf)
         switch variant {
 
-        
 
-        
+
+
         case 1: return .ConnectionError(
             errorDetails: try FfiConverterString.read(from: &buf)
             )
@@ -942,59 +1129,59 @@ public struct FfiConverterTypeVssError: FfiConverterRustBuffer {
     public static func write(_ value: VssError, into buf: inout [UInt8]) {
         switch value {
 
-        
 
-        
-        
+
+
+
         case let .ConnectionError(errorDetails):
             writeInt(&buf, Int32(1))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .AuthError(errorDetails):
             writeInt(&buf, Int32(2))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .StoreError(errorDetails):
             writeInt(&buf, Int32(3))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .GetError(errorDetails):
             writeInt(&buf, Int32(4))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .ListError(errorDetails):
             writeInt(&buf, Int32(5))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .PutError(errorDetails):
             writeInt(&buf, Int32(6))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .DeleteError(errorDetails):
             writeInt(&buf, Int32(7))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .InvalidData(errorDetails):
             writeInt(&buf, Int32(8))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .NetworkError(errorDetails):
             writeInt(&buf, Int32(9))
             FfiConverterString.write(errorDetails, into: &buf)
-            
-        
+
+
         case let .UnknownError(errorDetails):
             writeInt(&buf, Int32(10))
             FfiConverterString.write(errorDetails, into: &buf)
-            
+
         }
     }
 }
@@ -1033,7 +1220,7 @@ extension VssError: Foundation.LocalizedError {
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 
 public enum VssFilterType {
-    
+
     case prefix
     case exact
 }
@@ -1052,26 +1239,26 @@ public struct FfiConverterTypeVssFilterType: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> VssFilterType {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .prefix
-        
+
         case 2: return .exact
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: VssFilterType, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .prefix:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .exact:
             writeInt(&buf, Int32(2))
-        
+
         }
     }
 }
@@ -1144,6 +1331,31 @@ fileprivate struct FfiConverterOptionTypeVssItem: FfiConverterRustBuffer {
         case 1: return try FfiConverterTypeVssItem.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeConditionalKeyValue: FfiConverterRustBuffer {
+    typealias SwiftType = [ConditionalKeyValue]
+
+    public static func write(_ value: [ConditionalKeyValue], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeConditionalKeyValue.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [ConditionalKeyValue] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [ConditionalKeyValue]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeConditionalKeyValue.read(from: &buf))
+        }
+        return seq
     }
 }
 
@@ -1619,6 +1831,34 @@ public func vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemo
         )
 }
 /**
+ * Atomically writes encrypted values if all supplied key versions still match.
+ * Returns the acknowledged resulting versions (expected + 1). Sends at most
+ * one mutation request, without redirects or automatic transport retries.
+ *
+ * Persist candidate values and expected versions before calling. On an unknown
+ * outcome or cancellation, read and compare the exact candidate before retrying;
+ * never replace it with newly captured state and call that a retry. A conflict
+ * requires reconciliation, not an unconditional overwrite.
+ *
+ * Only use keys whose writers all follow conditional versioning and never
+ * delete/recreate them: legacy unconditional writes reset versions to one.
+ * This API does not enforce backup migration or exclude legacy clients.
+ */
+public func vssPutConditional(items: [ConditionalKeyValue])async throws  -> [KeyVersion]  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_vss_rust_client_ffi_fn_func_vss_put_conditional(FfiConverterSequenceTypeConditionalKeyValue.lower(items)
+                )
+            },
+            pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_vss_rust_client_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceTypeKeyVersion.lift,
+            errorHandler: FfiConverterTypeConditionalWriteError_lift
+        )
+}
+/**
  * Stores multiple key-value pairs in a single atomic transaction.
  *
  * This function allows batch storage of multiple items. All items will be
@@ -1769,6 +2009,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_ldk_client_with_lnurl_auth() != 59369) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_vss_rust_client_ffi_checksum_func_vss_put_conditional() != 20681) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix() != 49391) {

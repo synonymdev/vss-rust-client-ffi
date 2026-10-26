@@ -1,5 +1,21 @@
 use thiserror::Error;
 
+/// Conditional writes never replay a mutation automatically. An unknown outcome
+/// requires reading the candidate keys before deciding whether another write is safe.
+#[derive(Error, Debug, uniffi::Error)]
+pub enum ConditionalWriteError {
+    #[error("VSS client is not initialized")]
+    ClientNotInitialized,
+    #[error("Invalid conditional write: {reason}")]
+    InvalidInput { reason: String },
+    #[error("A key version changed; the transaction was not applied")]
+    Conflict,
+    #[error("The server rejected the conditional write")]
+    Rejected,
+    #[error("The write outcome is unknown; reconcile the saved candidate before retrying")]
+    OutcomeUnknown,
+}
+
 #[derive(Error, Debug, uniffi::Error)]
 pub enum VssError {
     #[error("Connection error: {error_details}")]
