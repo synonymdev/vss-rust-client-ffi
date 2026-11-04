@@ -53,6 +53,35 @@ or exclude old clients. Migration policy, immutable component references, causal
 snapshot consistency and restore gates are application/server responsibilities.
 This API does not enable a new Bitkit backup format.
 
+### Exact encrypted-object read observations (source API)
+
+`vss_get_with_receipt(key, max_response_bytes)` returns the decrypted app object,
+logical and opaque storage keys, configured store ID, actual outer server version,
+and a lowercase SHA-256 digest of the exact encrypted `KeyValue.value` bytes. The
+hash is computed before protobuf decoding, including any unknown envelope fields.
+Legacy unconditional envelopes with embedded version `-1` remain readable; other
+embedded versions must match the positive outer version. Key derivation and
+key-bound authentication are unchanged.
+
+The storage request is made once without redirects. Only an explicit typed HTTP
+404 missing-key response returns `None`; an empty success, malformed response,
+authentication failure, wrong key/version, or exceeded limit is an error. The
+caller chooses a complete protobuf response limit between 1 byte and 64 MiB. The
+ten-second deadline includes credential acquisition and response reading; the
+byte limit applies to the storage response, not the existing credential provider's
+separate requests. Authentic encrypted empty plaintext remains a valid object.
+
+This is a local observation, not a signed server receipt or proof of freshness,
+principal identity, migration authority, or multi-object coherence. Keep the
+original wallet and endpoint context, reject stale-owner completions, and never
+log the receipt or its plaintext. Replacing or shutting down the global client
+does not retarget or necessarily cancel an in-flight read. No backup format,
+reader/writer fence, or app activation is enabled by this API.
+
+The checked-in Swift package continues to use its matching released wrapper and
+binary. This new source API requires regenerated bindings and a future coordinated
+SDK release before app adoption; it is not present in the existing release.
+
 ### Swift (iOS)
 
 ```swift

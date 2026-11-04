@@ -1,5 +1,22 @@
 use serde::{Deserialize, Serialize};
 
+/// A decrypted app object and the SHA-256 of its exact stored encrypted envelope.
+/// This is a local read observation, not a signed server receipt or migration
+/// authorization. Store IDs alone do not identify an authenticated principal.
+/// Callers must retain their original wallet/endpoint identity and revalidate it
+/// before using the observation. Do not log this record or its plaintext value.
+#[derive(Clone, uniffi::Record)]
+pub struct VssReadReceipt {
+    pub key: String,
+    pub value: Vec<u8>,
+    pub store_id: String,
+    pub storage_key: String,
+    /// Lowercase, 64-character hexadecimal SHA-256 of exact stored envelope bytes.
+    pub envelope_sha256: String,
+    /// Actual outer server version, not the legacy envelope's embedded -1 sentinel.
+    pub version: i64,
+}
+
 #[derive(Debug, Clone, uniffi::Record, Serialize, Deserialize)]
 pub struct VssItem {
     pub key: String,
