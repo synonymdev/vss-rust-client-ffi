@@ -1,6 +1,6 @@
 //! Read-only, in-memory ownership across app and LDK backup observations.
 
-use crate::{LdkNamespace, LdkVssClient, VssClient, VssError, VssReadReceipt};
+use crate::{LdkNamespace, LdkVssClient, MigrationState, VssClient, VssError, VssReadReceipt};
 use std::sync::Arc;
 use tokio::sync::watch;
 
@@ -32,6 +32,27 @@ pub enum BackupReadError {
     DifferentOwner,
     #[error(transparent)]
     Read(#[from] VssError),
+}
+
+/// Credential/derivation domain, independent of textual store identity.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BackupDomain {
+    App,
+    Ldk,
+}
+
+/// Server-reported policy bound to one original session and credential domain.
+/// Not serializable or Debug; it carries physical storage identity, not authority.
+pub struct MigrationObservation {
+    owner: Arc<watch::Sender<bool>>,
+    domain: BackupDomain,
+    state: MigrationState,
+}
+
+impl MigrationObservation {
+    pub fn domain(&self) -> BackupDomain {
+        self.domain
+    }
 }
 
 /// An observation bound to one native session. Deliberately not serializable or
@@ -136,6 +157,47 @@ impl BackupReadSession {
         }
         self.ensure_active()?;
         Ok(observation.receipt.as_ref())
+    }
+
+    /// One read of the candidate VSS migration-status contract. Unsupported routes,
+    /// policy errors and missing/malformed tuples are errors, never legacy absence.
+    /// The ten-second deadline includes credentials; the storage body is capped at 64 KiB.
+    pub async fn read_migration_state(
+        &self,
+        domain: BackupDomain,
+    ) -> Result<MigrationObservation, BackupReadError> {
+        let mut cancellation = self.revoked.subscribe();
+        self.ensure_active()?;
+        let read = async {
+            match domain {
+                BackupDomain::App => self.app.read_migration_state().await,
+                BackupDomain::Ldk => self.ldk.read_migration_state().await,
+            }
+        };
+        let state = tokio::select! {
+            biased;
+            _ = cancellation.changed() => return Err(BackupReadError::Revoked),
+            result = read => result,
+        };
+        self.ensure_active()?;
+        Ok(MigrationObservation {
+            owner: Arc::clone(&self.revoked),
+            domain,
+            state: state?,
+        })
+    }
+
+    /// Local observation access only. A future mutation must freshly and atomically
+    /// bind its authorization to the observed principal/store on an enforcing server.
+    pub fn migration_state<'a>(
+        &self,
+        observation: &'a MigrationObservation,
+    ) -> Result<&'a MigrationState, BackupReadError> {
+        if !Arc::ptr_eq(&self.revoked, &observation.owner) {
+            return Err(BackupReadError::DifferentOwner);
+        }
+        self.ensure_active()?;
+        Ok(&observation.state)
     }
 
     fn ensure_active(&self) -> Result<(), BackupReadError> {

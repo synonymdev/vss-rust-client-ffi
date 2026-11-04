@@ -19,7 +19,7 @@ const MAX_RESPONSE_BYTES: u32 = 64 * 1024 * 1024;
 
 pub(crate) struct ReceiptReader {
     http: reqwest::Client,
-    url: String,
+    base_url: String,
     headers: Arc<dyn VssHeaderProvider>,
 }
 
@@ -36,7 +36,7 @@ impl ReceiptReader {
             .map_err(|_| network_error())?;
         Ok(Self {
             http,
-            url: format!("{}/getObject", base_url.trim_end_matches('/')),
+            base_url: base_url.trim_end_matches('/').to_owned(),
             headers,
         })
     }
@@ -46,22 +46,35 @@ impl ReceiptReader {
         request: GetObjectRequest,
         limit: u32,
     ) -> Result<Option<vss_client_ng::types::KeyValue>, VssError> {
+        let (status, bytes) = self
+            .post("getObject", request.encode_to_vec(), limit)
+            .await?;
+        decode_response(status, &bytes)
+    }
+
+    /// One bounded storage request under this client's original provider.
+    pub(crate) async fn post(
+        &self,
+        route: &str,
+        body: Vec<u8>,
+        limit: u32,
+    ) -> Result<(reqwest::StatusCode, Vec<u8>), VssError> {
         if limit == 0 || limit > MAX_RESPONSE_BYTES {
             return Err(invalid(
                 "Response limit must be between 1 and 67108864 bytes",
             ));
         }
-        tokio::time::timeout(TIMEOUT, self.request(request, limit as usize))
+        tokio::time::timeout(TIMEOUT, self.request(route, body, limit as usize))
             .await
             .map_err(|_| network_error())?
     }
 
     async fn request(
         &self,
-        request: GetObjectRequest,
+        route: &str,
+        body: Vec<u8>,
         limit: usize,
-    ) -> Result<Option<vss_client_ng::types::KeyValue>, VssError> {
-        let body = request.encode_to_vec();
+    ) -> Result<(reqwest::StatusCode, Vec<u8>), VssError> {
         let headers = self
             .headers
             .get_headers(&body)
@@ -69,7 +82,7 @@ impl ReceiptReader {
             .map_err(credential_error)?;
         let mut request = self
             .http
-            .post(&self.url)
+            .post(format!("{}/{route}", self.base_url))
             .header("Content-Type", "application/octet-stream");
         for (name, value) in headers {
             request = request.header(name, value);
@@ -81,7 +94,7 @@ impl ReceiptReader {
             .map_err(|_| network_error())?;
         let status = response.status();
         let bytes = bounded_body(response, limit).await?;
-        decode_response(status, &bytes)
+        Ok((status, bytes))
     }
 }
 
