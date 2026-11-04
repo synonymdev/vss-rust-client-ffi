@@ -12,7 +12,9 @@ mod types;
 
 pub use backup_session::{
     BackupDomain, BackupReadConfig, BackupReadError, BackupReadObservation, BackupReadSession,
-    BackupReadTarget, MigrationObservation,
+    BackupReadTarget, MigrationHeadInput, MigrationObservation, MigrationPreparation,
+    MigrationPreparationError, PreparedMigration, PreparedMigrationContent, PreparedMigrationHead,
+    PreparedMigrationStore,
 };
 pub use errors::*;
 pub use implementation::{derive_vss_store_id, VssClient};

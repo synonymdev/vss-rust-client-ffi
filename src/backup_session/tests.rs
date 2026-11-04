@@ -1,4 +1,5 @@
 use super::*;
+mod preparation;
 use bitcoin::{
     hashes::{sha256, Hash},
     hex::FromHex,
