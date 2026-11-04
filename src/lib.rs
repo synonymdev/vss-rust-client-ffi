@@ -4,6 +4,7 @@ mod errors;
 mod ffi_tests;
 mod implementation;
 mod ldk_client;
+mod receipt;
 mod tests;
 mod types;
 
@@ -307,6 +308,34 @@ pub async fn vss_put_conditional(
     execute_async!(async move {
         let client = try_get_client().map_err(|_| ConditionalWriteError::ClientNotInitialized)?;
         client.put_conditional(items).await
+    })
+}
+
+/// Reads an app object and hashes the exact encrypted `KeyValue.value` bytes
+/// before decoding, without changing encryption, keys, or server data.
+///
+/// Only a typed HTTP 404 `NoSuchKeyException` returns `None`. Empty, malformed,
+/// unauthenticated, oversized, or mismatched responses are errors. The byte
+/// limit includes the complete protobuf response and must be 1..=64 MiB.
+/// The storage request is attempted once, without redirects; credentials may
+/// be obtained by the captured client's existing header provider. The ten-second
+/// deadline includes credential acquisition and reading the bounded response.
+///
+/// Captures one client before awaiting; replacing the singleton cannot retarget
+/// this read. It does not prevent an old read completing after shutdown. The
+/// caller must reject stale-owner completions. This observation neither proves
+/// freshness/absence against a malicious server nor fences legacy readers or
+/// writers, authorizes migration, or makes a multi-object snapshot coherent.
+///
+/// Rust source API only. Exporting this through UniFFI requires a coordinated
+/// release of the generated interfaces and their matching native binaries.
+pub async fn vss_get_with_receipt(
+    key: String,
+    max_response_bytes: u32,
+) -> Result<Option<VssReadReceipt>, VssError> {
+    execute_async!(async move {
+        let client = try_get_client()?;
+        client.get_with_receipt(key, max_response_bytes).await
     })
 }
 

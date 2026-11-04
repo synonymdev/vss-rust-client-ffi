@@ -23,6 +23,7 @@ rand = "0.8.5"
 reqwest = { version = "0.12.25", default-features = false, features = ["rustls-tls"] }
 
 [dev-dependencies]
+async-trait = "0.1.89"
 tokio = { version = "1.40.0", features = ["full"] }
 
 # Override to use vendored OpenSSL for Android builds

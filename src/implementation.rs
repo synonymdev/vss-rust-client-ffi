@@ -112,6 +112,7 @@ impl EntropySource for RandEntropySource {
 pub struct VssClient {
     inner: Arc<ExternalVssClient<CustomRetryPolicy>>,
     pub(crate) conditional_inner: Arc<ExternalVssClient<crate::conditional::SingleAttempt>>,
+    pub(crate) receipt_reader: Arc<crate::receipt::ReceiptReader>,
     pub(crate) store_id: String,
     pub(crate) storable_builder: Arc<StorableBuilder<RandEntropySource>>,
     pub(crate) app_data_encryption_key: [u8; 32],
@@ -220,6 +221,10 @@ impl VssClient {
 
         let conditional_inner =
             crate::conditional::client(&base_url, Arc::clone(&header_provider))?;
+        let receipt_reader = Arc::new(crate::receipt::ReceiptReader::new(
+            &base_url,
+            Arc::clone(&header_provider),
+        )?);
         let client = ExternalVssClient::new_with_headers(base_url, retry_policy, header_provider);
 
         let storable_builder = Arc::new(StorableBuilder::new(RandEntropySource));
@@ -234,6 +239,7 @@ impl VssClient {
         Ok(VssClient {
             inner: Arc::new(client),
             conditional_inner: Arc::new(conditional_inner),
+            receipt_reader,
             store_id,
             storable_builder,
             app_data_encryption_key,
