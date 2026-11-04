@@ -6,6 +6,8 @@ use bitcoin::hashes::{sha256, Hash};
 use prost::Message;
 
 mod canonical;
+mod reconciliation;
+pub use reconciliation::{MigrationReconciliation, MigrationReconciliationError};
 
 const MAX_HEAD_BYTES: usize = 10 * 1024 * 1024;
 

@@ -6,8 +6,9 @@ use tokio::sync::watch;
 
 mod preparation;
 pub use preparation::{
-    MigrationHeadInput, MigrationPreparation, MigrationPreparationError, PreparedMigration,
-    PreparedMigrationContent, PreparedMigrationHead, PreparedMigrationStore,
+    MigrationHeadInput, MigrationPreparation, MigrationPreparationError, MigrationReconciliation,
+    MigrationReconciliationError, PreparedMigration, PreparedMigrationContent,
+    PreparedMigrationHead, PreparedMigrationStore,
 };
 
 /// One immutable storage/auth configuration for both native derivation domains.
@@ -175,18 +176,25 @@ impl BackupReadSession {
         &self,
         domain: BackupDomain,
     ) -> Result<MigrationObservation, BackupReadError> {
-        let mut cancellation = self.revoked.subscribe();
-        self.ensure_active()?;
-        // A pending, failed or abandoned refresh must not leave earlier policy
-        // observations admissible for a new proposal.
-        let revision = Arc::new(());
-        self.migration_revisions[domain.index()].send_replace(Arc::clone(&revision));
-        let read = async {
+        self.migration_observation(domain, async {
             match domain {
                 BackupDomain::App => self.app.read_migration_state().await,
                 BackupDomain::Ldk => self.ldk.read_migration_state().await,
             }
-        };
+        })
+        .await
+    }
+
+    async fn migration_observation(
+        &self,
+        domain: BackupDomain,
+        read: impl std::future::Future<Output = Result<MigrationState, VssError>>,
+    ) -> Result<MigrationObservation, BackupReadError> {
+        let mut cancellation = self.revoked.subscribe();
+        self.ensure_active()?;
+        // Pending, failed and abandoned reads invalidate earlier preparation.
+        let revision = Arc::new(());
+        self.migration_revisions[domain.index()].send_replace(Arc::clone(&revision));
         let state = tokio::select! {
             biased;
             _ = cancellation.changed() => return Err(BackupReadError::Revoked),
