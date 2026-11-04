@@ -1,12 +1,14 @@
 //! Strict, read-only snapshots of the encrypted objects stored by VSS.
 
-use crate::{VssClient, VssError, VssReadReceipt};
+use crate::implementation::RandEntropySource;
+use crate::{LdkNamespace, LdkVssClient, VssClient, VssError, VssReadReceipt};
 use bitcoin::hashes::{sha256, Hash};
 use prost::{
     encoding::{decode_key, decode_varint, skip_field, DecodeContext, WireType},
     Message,
 };
 use std::{sync::Arc, time::Duration};
+use vss_client_ng::util::storable_builder::StorableBuilder;
 use vss_client_ng::{
     headers::{VssHeaderProvider, VssHeaderProviderError},
     types::{ErrorCode, ErrorResponse, GetObjectRequest, GetObjectResponse, Storable},
@@ -106,6 +108,63 @@ impl VssClient {
         else {
             return Ok(None);
         };
+        ReceiptDecoder {
+            store_id: &self.store_id,
+            builder: &self.storable_builder,
+            encryption_key: &self.app_data_encryption_key,
+        }
+        .decode(stored, key, storage_key)
+        .map(Some)
+    }
+}
+
+impl LdkVssClient {
+    /// Reads one V1-namespaced LDK object with the same strict limits as app receipts.
+    /// This Rust source API does not affect the running ldk-node or its admission.
+    pub async fn get_with_receipt(
+        &self,
+        key: String,
+        namespace: &LdkNamespace,
+        max_response_bytes: u32,
+    ) -> Result<Option<VssReadReceipt>, VssError> {
+        if key.is_empty() {
+            return Err(invalid("The key must not be empty"));
+        }
+        let storage_key = self.build_key(&key, namespace);
+        let request = GetObjectRequest {
+            store_id: self.store_id.clone(),
+            key: storage_key.clone(),
+        };
+        let Some(stored) = self
+            .receipt_reader
+            .read(request, max_response_bytes)
+            .await?
+        else {
+            return Ok(None);
+        };
+        ReceiptDecoder {
+            store_id: &self.store_id,
+            builder: &self.storable_builder,
+            encryption_key: &self.data_encryption_key,
+        }
+        .decode(stored, key, storage_key)
+        .map(Some)
+    }
+}
+
+struct ReceiptDecoder<'a> {
+    store_id: &'a str,
+    builder: &'a StorableBuilder<RandEntropySource>,
+    encryption_key: &'a [u8; 32],
+}
+
+impl ReceiptDecoder<'_> {
+    fn decode(
+        &self,
+        stored: vss_client_ng::types::KeyValue,
+        key: String,
+        storage_key: String,
+    ) -> Result<VssReadReceipt, VssError> {
         if stored.key != storage_key || stored.version <= 0 {
             return Err(invalid("The response key or server version is invalid"));
         }
@@ -121,26 +180,22 @@ impl VssClient {
             return Err(invalid("Unsupported encrypted backup format"));
         }
         let (value, embedded_version) = self
-            .storable_builder
-            .deconstruct(
-                storable,
-                &self.app_data_encryption_key,
-                storage_key.as_bytes(),
-            )
+            .builder
+            .deconstruct(storable, self.encryption_key, storage_key.as_bytes())
             .map_err(|_| invalid("Cannot authenticate the stored envelope"))?;
         if embedded_version != -1 && embedded_version != stored.version {
             return Err(invalid(
                 "The encrypted version does not match the server version",
             ));
         }
-        Ok(Some(VssReadReceipt {
+        Ok(VssReadReceipt {
             key,
             value,
-            store_id: self.store_id.clone(),
+            store_id: self.store_id.to_owned(),
             storage_key,
             envelope_sha256,
             version: stored.version,
-        }))
+        })
     }
 }
 

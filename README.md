@@ -433,3 +433,34 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [VSS Server](https://github.com/lightningdevkit/vss-server) - The VSS server implementation
 - [vss-client-ng](https://crates.io/crates/vss-client-ng) - The underlying Rust client library
 - [UniFFI](https://mozilla.github.io/uniffi-rs/) - The FFI binding generator
+
+### Retained backup read session (Rust source preparation)
+
+`BackupReadSession` constructs the app and dedicated LDK clients from one full
+wallet seed and one endpoint/store/auth configuration. It preserves the truncated
+app derivation and full-seed LDK derivation. It never combines separately replaced
+global clients. `read(BackupReadTarget, byte_limit)` produces an opaque observation;
+`receipt(&observation)` checks its original session and revocation state. Even a
+second session with identical wallet arguments cannot adopt that observation.
+Typed absence retains the original logical target and owner as well.
+
+`revoke()` permanently closes local read admission and wakes pending reads. A
+cancelled/dropped read schedules no retry. Revocation cannot retract an already
+admitted network request, previously borrowed data or copied plaintext. A receipt
+check is valid only at that instant; it grants no later mutation authority. The
+storage response is capped, while the inherited credential provider's separate
+responses are not. The ten-second deadline covers both credential acquisition and
+storage. No lock is held across a network await.
+
+LDK receipts use the dedicated client's existing V1 namespace/AAD and full-seed
+encryption. A V1 missing-key result says nothing about older V0 objects. This client
+does not control a separately running ldk-node. Equal store IDs do not establish
+physical principal identity, and sequential reads do not prove a coherent archive.
+App lifecycle drains, authoritative principal mapping, old-reader/writer exclusion
+and conditional migration remain separate prerequisites.
+
+These types and methods have no UniFFI export. Like the earlier receipt primitive,
+they are in-crate Rust source preparation: this package still emits only static
+and dynamic libraries, not a downstream Cargo `rlib`. Released Swift/Kotlin
+interfaces, binary tags and checksums are unchanged. No migration or writer is
+activated by creating or reading a session. Do not log observations or plaintext.
