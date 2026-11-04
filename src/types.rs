@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// authorization. Store IDs alone do not identify an authenticated principal.
 /// Callers must retain their original wallet/endpoint identity and revalidate it
 /// before using the observation. Do not log this record or its plaintext value.
-#[derive(Clone, uniffi::Record)]
+#[derive(Clone)]
 pub struct VssReadReceipt {
     pub key: String,
     pub value: Vec<u8>,

@@ -53,7 +53,7 @@ or exclude old clients. Migration policy, immutable component references, causal
 snapshot consistency and restore gates are application/server responsibilities.
 This API does not enable a new Bitkit backup format.
 
-### Exact encrypted-object read observations (source API)
+### Exact encrypted-object read observations (Rust source API)
 
 `vss_get_with_receipt(key, max_response_bytes)` returns the decrypted app object,
 logical and opaque storage keys, configured store ID, actual outer server version,
@@ -78,9 +78,12 @@ log the receipt or its plaintext. Replacing or shutting down the global client
 does not retarget or necessarily cancel an in-flight read. No backup format,
 reader/writer fence, or app activation is enabled by this API.
 
-The checked-in Swift package continues to use its matching released wrapper and
-binary. This new source API requires regenerated bindings and a future coordinated
-SDK release before app adoption; it is not present in the existing release.
+This operation and its record are not exported through UniFFI. The checked-in
+Swift package and regenerated interfaces continue to match the released API.
+Swift/Kotlin availability requires a coordinated SDK release that adds the exports,
+regenerates the interfaces, and publishes their matching native binaries. The
+crate currently produces static and dynamic libraries, not a Rust dependency
+library; this is a Rust source API, not a new distributed SDK entry point.
 
 ### Swift (iOS)
 

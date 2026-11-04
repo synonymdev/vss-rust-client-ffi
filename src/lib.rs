@@ -326,7 +326,9 @@ pub async fn vss_put_conditional(
 /// caller must reject stale-owner completions. This observation neither proves
 /// freshness/absence against a malicious server nor fences legacy readers or
 /// writers, authorizes migration, or makes a multi-object snapshot coherent.
-#[uniffi::export]
+///
+/// Rust source API only. Exporting this through UniFFI requires a coordinated
+/// release of the generated interfaces and their matching native binaries.
 pub async fn vss_get_with_receipt(
     key: String,
     max_response_bytes: u32,
