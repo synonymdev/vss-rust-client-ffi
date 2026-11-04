@@ -113,6 +113,7 @@ pub struct VssClient {
     inner: Arc<ExternalVssClient<CustomRetryPolicy>>,
     pub(crate) conditional_inner: Arc<ExternalVssClient<crate::conditional::SingleAttempt>>,
     pub(crate) receipt_reader: Arc<crate::receipt::ReceiptReader>,
+    pub(crate) fresh_migration_reader: Option<crate::migration_status::FreshMigrationReader>,
     pub(crate) store_id: String,
     pub(crate) storable_builder: Arc<StorableBuilder<RandEntropySource>>,
     pub(crate) app_data_encryption_key: [u8; 32],
@@ -182,6 +183,11 @@ impl VssClient {
                 error_details: format!("Failed to derive LNURL-auth key: {}", e),
             })?;
 
+        let fresh_migration_reader = crate::migration_status::FreshMigrationReader::new(
+            base_url.clone(),
+            lnurl_auth_xprv,
+            lnurl_auth_server_url.clone(),
+        );
         let lnurl_auth_jwt_provider =
             LnurlAuthToJwtProvider::new(lnurl_auth_xprv, lnurl_auth_server_url, HashMap::new())
                 .map_err(|e| VssError::ConnectionError {
@@ -190,13 +196,15 @@ impl VssClient {
 
         let header_provider = Arc::new(lnurl_auth_jwt_provider);
 
-        Self::new_with_header_provider(
+        let mut client = Self::new_with_header_provider(
             base_url,
             store_id,
             header_provider,
             Some(app_vss_seed_bytes),
         )
-        .await
+        .await?;
+        client.fresh_migration_reader = Some(fresh_migration_reader);
+        Ok(client)
     }
 
     /// Internal method to create a client with any header provider
@@ -240,6 +248,7 @@ impl VssClient {
             inner: Arc::new(client),
             conditional_inner: Arc::new(conditional_inner),
             receipt_reader,
+            fresh_migration_reader: None,
             store_id,
             storable_builder,
             app_data_encryption_key,

@@ -52,6 +52,7 @@ type LdkRetryPolicy = FilteredRetryPolicy<
 pub struct LdkVssClient {
     inner: Arc<ExternalVssClient<LdkRetryPolicy>>,
     pub(crate) receipt_reader: Arc<crate::receipt::ReceiptReader>,
+    pub(crate) fresh_migration_reader: crate::migration_status::FreshMigrationReader,
     pub(crate) store_id: String,
     pub(crate) storable_builder: Arc<StorableBuilder<RandEntropySource>>,
     pub(crate) data_encryption_key: [u8; 32],
@@ -94,6 +95,11 @@ impl LdkVssClient {
                 error_details: format!("Failed to derive LNURL-auth key: {}", e),
             })?;
 
+        let fresh_migration_reader = crate::migration_status::FreshMigrationReader::new(
+            base_url.clone(),
+            lnurl_auth_xprv,
+            lnurl_auth_server_url.clone(),
+        );
         let lnurl_auth_jwt_provider =
             LnurlAuthToJwtProvider::new(lnurl_auth_xprv, lnurl_auth_server_url, HashMap::new())
                 .map_err(|e| VssError::ConnectionError {
@@ -145,6 +151,7 @@ impl LdkVssClient {
         Ok(LdkVssClient {
             inner: Arc::new(client),
             receipt_reader,
+            fresh_migration_reader,
             store_id,
             storable_builder: Arc::new(StorableBuilder::new(RandEntropySource)),
             data_encryption_key,

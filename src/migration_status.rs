@@ -55,6 +55,55 @@ impl LdkVssClient {
     }
 }
 
+/// Captured original signer/configuration, never global replacement or cached JWT adoption.
+#[derive(Clone)]
+pub(crate) struct FreshMigrationReader {
+    base_url: String,
+    signer: bitcoin::bip32::Xpriv,
+    auth_url: String,
+}
+
+impl FreshMigrationReader {
+    pub(crate) fn new(base_url: String, signer: bitcoin::bip32::Xpriv, auth_url: String) -> Self {
+        Self {
+            base_url,
+            signer,
+            auth_url,
+        }
+    }
+
+    async fn read(&self, store_id: &str) -> Result<MigrationState, VssError> {
+        let provider = vss_client_ng::headers::LnurlAuthToJwtProvider::new(
+            self.signer,
+            self.auth_url.clone(),
+            std::collections::HashMap::new(),
+        )
+        .map_err(|_| VssError::AuthError {
+            error_details: "Original migration credentials are unavailable".into(),
+        })?;
+        let reader = ReceiptReader::new(&self.base_url, std::sync::Arc::new(provider))?;
+        read(&reader, store_id).await
+    }
+}
+
+impl VssClient {
+    pub(crate) async fn read_fresh_migration_state(&self) -> Result<MigrationState, VssError> {
+        let reader = self
+            .fresh_migration_reader
+            .as_ref()
+            .ok_or_else(|| VssError::AuthError {
+                error_details: "Original migration signer is unavailable".into(),
+            })?;
+        reader.read(&self.store_id).await
+    }
+}
+
+impl LdkVssClient {
+    pub(crate) async fn read_fresh_migration_state(&self) -> Result<MigrationState, VssError> {
+        self.fresh_migration_reader.read(&self.store_id).await
+    }
+}
+
 async fn read(reader: &ReceiptReader, store_id: &str) -> Result<MigrationState, VssError> {
     if !valid_identity(store_id) {
         return Err(invalid());

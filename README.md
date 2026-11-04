@@ -534,3 +534,34 @@ tuple. The preserved server candidate accepts one proof per unique target; that
 alone cannot recheck a second provider which has since remapped elsewhere. Retained
 domain labels are necessary, but enforcing that condition remains unresolved before
 any future activation.
+
+### Retained migration outcome observations (Rust source only)
+
+`BackupReadSession::reconcile_migration` compares an opaque retained proposal with
+fresh status reads through both original app and LDK clients, including when their
+original physical tuple was shared. It checks each original principal/store and the
+exact UUID, all-tuples digest, archive presence/hash, initial encrypted-head hash and
+complete component set. Component wire order is irrelevant. It compares the immutable
+initial receipt, never a later mutable head or a substitute wallet export.
+
+Only two matching committed receipts return `ObservedCommitted`; two expected legacy
+receipts return `ObservedUncommitted`. Neither is an atomic snapshot or write/replay
+permit. Read failures, malformed/unsupported responses, remapped providers, mismatched
+receipts, mixed outcomes, superseding reads and owner revocation remain errors.
+Each read obtains a new token with its captured original signer, even when the ordinary
+provider holds a valid cached token. Fresh authentication failure cannot fall back to
+that token. The ten-second deadline includes authentication; the VSS storage POST has
+no automatic retry or redirect. The inherited LNURL GETs retain their own redirect
+policy and uncapped response parsing within that deadline. Cancellation
+abandons pending reads; revocation discards their results. Another session, even with
+the same seed, cannot adopt the handle. Starting reconciliation invalidates preparation
+access and does not restore it. The retained immutable content is used only for comparison.
+
+This is in-memory native source, without new UniFFI exports or durable restart adoption.
+Sequential provider reads do not repair the coalesced-provider atomic enforcement gap
+above. Server deployment, app lifecycle admission, legacy-reader exclusion and complete
+coherent capture/restore remain separate prerequisites; no migration is dispatched.
+
+The candidate server may initialize an empty legacy policy row during a status read.
+This client invokes only status and authentication routes; it does not assert that
+server implementation performs zero database writes.

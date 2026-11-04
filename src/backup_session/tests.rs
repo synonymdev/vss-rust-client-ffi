@@ -1,5 +1,6 @@
 use super::*;
 mod preparation;
+mod reconciliation;
 use bitcoin::{
     hashes::{sha256, Hash},
     hex::FromHex,
@@ -7,7 +8,7 @@ use bitcoin::{
 };
 use prost::Message as ProstMessage;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 use tokio::{
@@ -21,6 +22,7 @@ use vss_client_ng::types::{
 };
 
 type StatusResponse = Arc<Mutex<Option<(u16, Vec<u8>)>>>;
+type StatusQueue = Arc<Mutex<VecDeque<(u16, Vec<u8>)>>>;
 
 struct Fixture {
     url: String,
@@ -28,8 +30,15 @@ struct Fixture {
     auth_keys: Arc<Mutex<Vec<String>>>,
     requests: Arc<Mutex<Vec<GetObjectRequest>>>,
     status_response: StatusResponse,
+    status_queue: StatusQueue,
+    status_hold_at: Arc<AtomicUsize>,
+    status_principals: Arc<Mutex<Vec<String>>>,
+    issued_principals: Arc<Mutex<HashMap<String, String>>>,
+    default_principal: Arc<Mutex<Option<String>>>,
+    status_uses_token: Arc<AtomicBool>,
     status_renewed: Arc<Mutex<Vec<bool>>>,
     status_requests: Arc<Mutex<Vec<String>>>,
+    status_arrived: Arc<Notify>,
     expire_tokens: Arc<AtomicBool>,
     refuse_auth: Arc<AtomicBool>,
     redirect_requests: Arc<AtomicUsize>,
@@ -54,6 +63,20 @@ impl Fixture {
         let requests = Arc::new(Mutex::new(Vec::new()));
         let status_response = Arc::new(Mutex::new(None::<(u16, Vec<u8>)>));
         let status_requests = Arc::new(Mutex::new(Vec::new()));
+        let status_arrived = Arc::new(Notify::new());
+        let status_notification = status_arrived.clone();
+        let status_queue = Arc::new(Mutex::new(VecDeque::<(u16, Vec<u8>)>::new()));
+        let queued_status = status_queue.clone();
+        let status_hold_at = Arc::new(AtomicUsize::new(0));
+        let held_status_number = status_hold_at.clone();
+        let status_principals = Arc::new(Mutex::new(Vec::new()));
+        let observed_principals = status_principals.clone();
+        let issued_principals = Arc::new(Mutex::new(HashMap::<String, String>::new()));
+        let issuer_map = issued_principals.clone();
+        let default_principal = Arc::new(Mutex::new(None::<String>));
+        let issuer_default = default_principal.clone();
+        let status_uses_token = Arc::new(AtomicBool::new(false));
+        let use_token = status_uses_token.clone();
         let expire_tokens = Arc::new(AtomicBool::new(false));
         let refuse_auth = Arc::new(AtomicBool::new(false));
         let redirect_requests = Arc::new(AtomicUsize::new(0));
@@ -158,6 +181,13 @@ impl Fixture {
                         .verify_ecdsa(&Message::from_digest([1; 32]), &signature, &public)
                         .unwrap();
                     keys.lock().await.push(query["key"].clone());
+                    let issued_principal = issuer_map
+                        .lock()
+                        .await
+                        .get(&query["key"])
+                        .cloned()
+                        .or(issuer_default.lock().await.clone())
+                        .unwrap_or_else(|| query["key"].clone());
                     (
                         200,
                         format!(
@@ -167,7 +197,7 @@ impl Fixture {
                             } else {
                                 "eyJleHAiOjQxMDI0NDQ4MDB9"
                             },
-                            query["key"]
+                            issued_principal
                         )
                         .into_bytes(),
                     )
@@ -178,18 +208,33 @@ impl Fixture {
                     use crate::migration_status::wire;
                     let req = wire::Request::decode(&data[end..]).unwrap();
                     status_reads.lock().await.push(req.store_id.clone());
+                    status_notification.notify_one();
                     renewed_reads.lock().await.push(renewed_proof);
-                    status_reply.lock().await.clone().unwrap_or_else(|| {
-                        (
-                            200,
-                            wire::State {
-                                effective_principal: principal.unwrap(),
-                                store_id: req.store_id,
-                                ..Default::default()
-                            }
-                            .encode_to_vec(),
-                        )
-                    })
+                    observed_principals
+                        .lock()
+                        .await
+                        .push(principal.clone().unwrap());
+                    let mut queued = queued_status.lock().await.pop_front();
+                    if use_token.load(Ordering::SeqCst) {
+                        if let Some((200, body)) = &mut queued {
+                            let mut state = wire::State::decode(body.as_slice()).unwrap();
+                            state.effective_principal = principal.clone().unwrap();
+                            *body = state.encode_to_vec();
+                        }
+                    }
+                    queued
+                        .or(status_reply.lock().await.clone())
+                        .unwrap_or_else(|| {
+                            (
+                                200,
+                                wire::State {
+                                    effective_principal: principal.unwrap(),
+                                    store_id: req.store_id,
+                                    ..Default::default()
+                                }
+                                .encode_to_vec(),
+                            )
+                        })
                 } else {
                     assert_eq!(path, "/getObject");
                     let req = GetObjectRequest::decode(&data[end..]).unwrap();
@@ -210,7 +255,10 @@ impl Fixture {
                         ),
                     }
                 };
-                let should_hold = held.lock().await.as_deref() == Some(&path);
+                let should_hold = held.lock().await.as_deref() == Some(&path)
+                    || (path == "/getStoreMigrationState"
+                        && held_status_number.load(Ordering::SeqCst)
+                            == status_reads.lock().await.len());
                 let storage_path = path == "/getObject" || path == "/getStoreMigrationState";
                 if should_hold && !storage_path {
                     arrived.notify_one();
@@ -243,8 +291,15 @@ impl Fixture {
             auth_keys,
             requests,
             status_response,
+            status_queue,
+            status_hold_at,
+            status_principals,
+            issued_principals,
+            default_principal,
+            status_uses_token,
             status_renewed,
             status_requests,
+            status_arrived,
             expire_tokens,
             refuse_auth,
             redirect_requests,
