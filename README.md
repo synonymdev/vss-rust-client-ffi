@@ -488,3 +488,49 @@ prove all-tuples coherence, deployed principal mapping or old reader/writer
 exclusion. Before any mutation an enforcing server must atomically recheck fresh
 authorization against the observed original principal/store. Do not serialize
 observations, log identities/proofs or treat status as permission to migrate.
+
+### Immutable migration proposal (Rust source preparation)
+
+`BackupReadSession::prepare_migration` consumes references to the original session's
+app and LDK status observations, original logical `WALLET` observation and present
+app component observations. Components must already be safe to make immutable;
+ordinary mutable app keys, including same-key USDT retries that re-encrypt, cannot
+be substituted for immutable snapshots. This semantic remains the app's duty.
+LDK operational objects are rejected as components, while LDK policy still
+participates in the proposal. It preserves the legacy archive's encrypted key/AAD and
+exact raw envelope digest; explicit absence is a separate condition. It encrypts
+the supplied initial head once with the original app key, without uploading or
+replacing any object. The app remains responsible for the head schema and complete,
+coherent capture. An opaque wallet value alone cannot prove that completeness.
+
+Every domain must have a positive legacy status. Equal store IDs do not combine
+identities: only an exact match of both reported principal and store coalesces app
+and LDK into one physical tuple, retaining both domain labels. Duplicate/conflicting
+component keys, destructive head/archive collisions, noncanonical UUIDs and inputs
+outside the candidate server's activation limits are rejected. The digest uses the
+server's UTF-8 tuple/key ordering and exact field encoding, including the encrypted
+head and all archive/component conditions. It contains no renewable proof.
+
+Access the frozen result through `prepared_migration`. Another session cannot adopt
+it, even with the same seed. Revocation or starting either domain's next status read
+invalidates access and preparation from earlier status observations. Failed,
+pending and abandoned status reads also invalidate earlier preparation; historical
+status remains readable. Repeated access retains the same ciphertext/digest. Calling
+preparation again requires a fresh UUID and creates different encrypted content,
+not a retry of the old plan. This preparation API has no durable UUID registry;
+future dispatch must preserve one exact attempt across uncertain outcomes.
+
+This content is neither persisted authority nor an execution API. Separate status
+and object reads cannot prove a coherent physical snapshot or stable authorization
+mapping between requests. A future enforcing server must atomically compare fresh
+proofs against every original physical tuple and exact envelope condition before
+mutation. Lifecycle drains, RN and running-node capabilities, old reader/writer
+exclusion, durable uncertain-outcome reconciliation and app restoration remain
+unfinished requirements. No activation request, new UniFFI API, release or deployed
+server support is introduced here. Never log plaintext, proofs or private identities.
+
+Coalescing does not verify that both credential providers still map to the shared
+tuple. The preserved server candidate accepts one proof per unique target; that
+alone cannot recheck a second provider which has since remapped elsewhere. Retained
+domain labels are necessary, but enforcing that condition remains unresolved before
+any future activation.

@@ -4,6 +4,12 @@ use crate::{LdkNamespace, LdkVssClient, MigrationState, VssClient, VssError, Vss
 use std::sync::Arc;
 use tokio::sync::watch;
 
+mod preparation;
+pub use preparation::{
+    MigrationHeadInput, MigrationPreparation, MigrationPreparationError, PreparedMigration,
+    PreparedMigrationContent, PreparedMigrationHead, PreparedMigrationStore,
+};
+
 /// One immutable storage/auth configuration for both native derivation domains.
 /// Equal store IDs do not establish equal physical server principals.
 pub struct BackupReadConfig {
@@ -45,6 +51,7 @@ pub enum BackupDomain {
 /// Not serializable or Debug; it carries physical storage identity, not authority.
 pub struct MigrationObservation {
     owner: Arc<watch::Sender<bool>>,
+    revision: Arc<()>,
     domain: BackupDomain,
     state: MigrationState,
 }
@@ -78,6 +85,7 @@ pub struct BackupReadSession {
     app: VssClient,
     ldk: LdkVssClient,
     revoked: Arc<watch::Sender<bool>>,
+    migration_revisions: [watch::Sender<Arc<()>>; 2],
 }
 
 impl BackupReadSession {
@@ -100,6 +108,7 @@ impl BackupReadSession {
             app,
             ldk,
             revoked: Arc::new(watch::channel(false).0),
+            migration_revisions: std::array::from_fn(|_| watch::channel(Arc::new(())).0),
         })
     }
 
@@ -168,6 +177,10 @@ impl BackupReadSession {
     ) -> Result<MigrationObservation, BackupReadError> {
         let mut cancellation = self.revoked.subscribe();
         self.ensure_active()?;
+        // A pending, failed or abandoned refresh must not leave earlier policy
+        // observations admissible for a new proposal.
+        let revision = Arc::new(());
+        self.migration_revisions[domain.index()].send_replace(Arc::clone(&revision));
         let read = async {
             match domain {
                 BackupDomain::App => self.app.read_migration_state().await,
@@ -182,6 +195,7 @@ impl BackupReadSession {
         self.ensure_active()?;
         Ok(MigrationObservation {
             owner: Arc::clone(&self.revoked),
+            revision,
             domain,
             state: state?,
         })
@@ -205,6 +219,15 @@ impl BackupReadSession {
             return Err(BackupReadError::Revoked);
         }
         Ok(())
+    }
+}
+
+impl BackupDomain {
+    fn index(self) -> usize {
+        match self {
+            Self::App => 0,
+            Self::Ldk => 1,
+        }
     }
 }
 
