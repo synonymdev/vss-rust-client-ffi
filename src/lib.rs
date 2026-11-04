@@ -1,3 +1,4 @@
+mod backup_session;
 mod conditional;
 mod errors;
 #[cfg(test)]
@@ -8,6 +9,9 @@ mod receipt;
 mod tests;
 mod types;
 
+pub use backup_session::{
+    BackupReadConfig, BackupReadError, BackupReadObservation, BackupReadSession, BackupReadTarget,
+};
 pub use errors::*;
 pub use implementation::{derive_vss_store_id, VssClient};
 pub use ldk_client::LdkVssClient;

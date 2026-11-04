@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// A decrypted app object and the SHA-256 of its exact stored encrypted envelope.
+/// A decrypted backup object and the SHA-256 of its exact stored encrypted envelope.
 /// This is a local read observation, not a signed server receipt or migration
 /// authorization. Store IDs alone do not identify an authenticated principal.
 /// Callers must retain their original wallet/endpoint identity and revalidate it
