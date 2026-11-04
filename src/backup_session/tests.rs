@@ -38,6 +38,7 @@ struct Fixture {
     status_uses_token: Arc<AtomicBool>,
     status_renewed: Arc<Mutex<Vec<bool>>>,
     status_requests: Arc<Mutex<Vec<String>>>,
+    status_arrived: Arc<Notify>,
     expire_tokens: Arc<AtomicBool>,
     refuse_auth: Arc<AtomicBool>,
     redirect_requests: Arc<AtomicUsize>,
@@ -62,6 +63,8 @@ impl Fixture {
         let requests = Arc::new(Mutex::new(Vec::new()));
         let status_response = Arc::new(Mutex::new(None::<(u16, Vec<u8>)>));
         let status_requests = Arc::new(Mutex::new(Vec::new()));
+        let status_arrived = Arc::new(Notify::new());
+        let status_notification = status_arrived.clone();
         let status_queue = Arc::new(Mutex::new(VecDeque::<(u16, Vec<u8>)>::new()));
         let queued_status = status_queue.clone();
         let status_hold_at = Arc::new(AtomicUsize::new(0));
@@ -205,6 +208,7 @@ impl Fixture {
                     use crate::migration_status::wire;
                     let req = wire::Request::decode(&data[end..]).unwrap();
                     status_reads.lock().await.push(req.store_id.clone());
+                    status_notification.notify_one();
                     renewed_reads.lock().await.push(renewed_proof);
                     observed_principals
                         .lock()
@@ -295,6 +299,7 @@ impl Fixture {
             status_uses_token,
             status_renewed,
             status_requests,
+            status_arrived,
             expire_tokens,
             refuse_auth,
             redirect_requests,

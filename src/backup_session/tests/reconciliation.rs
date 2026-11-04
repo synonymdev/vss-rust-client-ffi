@@ -389,8 +389,24 @@ async fn abandoned_reconciliation_does_not_restore_or_schedule_continuation() {
         _ = fixture.received.notified() => {},
         _ = &mut future => panic!("held read completed"),
     }
+    // Consume the held request's notification before watching for later work.
+    tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        fixture.status_arrived.notified(),
+    )
+    .await
+    .expect("held request must have notified the observer");
     drop(future);
     fixture.release.notify_one();
+    assert!(
+        tokio::time::timeout(
+            std::time::Duration::from_millis(250),
+            fixture.status_arrived.notified(),
+        )
+        .await
+        .is_err(),
+        "abandoned operation issued another status request"
+    );
     assert!(matches!(
         session.prepared_migration(&prepared),
         Err(MigrationPreparationError::StalePolicy)
@@ -557,4 +573,19 @@ async fn issuer_unavailable_does_not_fall_back_to_valid_cached_credentials() {
         })
     ));
     assert_eq!(fixture.status_requests.lock().await.len(), 3);
+}
+
+#[tokio::test]
+async fn continuation_observer_detects_an_explicitly_scheduled_status_read() {
+    let fixture = Fixture::new().await;
+    let session = fixture.session([42; 64]).await;
+    let read = tokio::spawn(async move { session.read_migration_state(BackupDomain::Ldk).await });
+    tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        fixture.status_arrived.notified(),
+    )
+    .await
+    .expect("positive control must detect the scheduled request");
+    read.await.unwrap().unwrap();
+    assert_eq!(fixture.status_requests.lock().await.len(), 1);
 }
