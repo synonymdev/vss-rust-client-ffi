@@ -5,16 +5,21 @@ mod errors;
 mod ffi_tests;
 mod implementation;
 mod ldk_client;
+mod migration_status;
 mod receipt;
 mod tests;
 mod types;
 
 pub use backup_session::{
-    BackupReadConfig, BackupReadError, BackupReadObservation, BackupReadSession, BackupReadTarget,
+    BackupDomain, BackupReadConfig, BackupReadError, BackupReadObservation, BackupReadSession,
+    BackupReadTarget, MigrationObservation,
 };
 pub use errors::*;
 pub use implementation::{derive_vss_store_id, VssClient};
 pub use ldk_client::LdkVssClient;
+pub use migration_status::{
+    CommittedMigration, MigrationArchive, MigrationObject, MigrationPolicy, MigrationState,
+};
 pub use types::*;
 
 uniffi::setup_scaffolding!();

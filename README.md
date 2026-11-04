@@ -464,3 +464,27 @@ they are in-crate Rust source preparation: this package still emits only static
 and dynamic libraries, not a downstream Cargo `rlib`. Released Swift/Kotlin
 interfaces, binary tags and checksums are unchanged. No migration or writer is
 activated by creating or reading a session. Do not log observations or plaintext.
+
+
+### Original-wallet migration status (Rust source preparation)
+
+`BackupReadSession::read_migration_state` observes the candidate VSS status contract
+through the original app or LDK credential provider. Each result retains its session
+and domain, including the server-reported physical principal/store. Different
+principals may share the same textual store ID. A renewed proof can return a changed
+mapping; old observations remain unchanged and never authorize a later mutation.
+
+An explicit legacy tuple is distinct from committed `bitkit-migration-v1` metadata.
+Unsupported routes, authorization failures, incomplete or conflicting fields,
+unknown protocols/epochs and over-limit responses remain errors. The storage POST
+has no automatic retry or redirect, a 64 KiB body limit, and a ten-second deadline
+covering credentials and body. The inherited credential provider keeps its own
+challenge/callback redirect and body policies. Dropping a read does not replay it;
+session revocation rejects pending and later results.
+
+This is unpublished-contract, in-crate source preparation: no new UniFFI export,
+released native API, server deployment or app activation. A single response cannot
+prove all-tuples coherence, deployed principal mapping or old reader/writer
+exclusion. Before any mutation an enforcing server must atomically recheck fresh
+authorization against the observed original principal/store. Do not serialize
+observations, log identities/proofs or treat status as permission to migrate.
