@@ -187,7 +187,7 @@ impl VssClient {
                     error_details: format!("Failed to create LNURL-auth provider: {}", e),
                 })?;
 
-        let header_provider = Arc::new(lnurl_auth_jwt_provider);
+        let header_provider = Arc::new(crate::auth::AuthHeaderProvider(lnurl_auth_jwt_provider));
 
         Self::new_with_header_provider(
             base_url,
