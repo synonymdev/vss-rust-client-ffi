@@ -2015,6 +2015,7 @@ dependencies = [
 name = "vss-rust-client-ffi"
 version = "0.5.26-rc2"
 dependencies = [
+ "async-trait",
  "bip39",
  "bitcoin",
  "once_cell",
