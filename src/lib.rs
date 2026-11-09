@@ -1,3 +1,4 @@
+mod auth;
 mod conditional;
 mod errors;
 #[cfg(test)]
