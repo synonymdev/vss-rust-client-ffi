@@ -304,15 +304,34 @@ mod tests {
         )
         .await
         .is_ok());
-        assert!(LdkVssClient::new_with_lnurl_auth(
-            MOCK_BASE_URL.to_string(),
-            TEST_STORE_ID.to_string(),
-            seed,
-            auth_url,
-            key_domain("https://bitkit.to"),
-        )
-        .await
-        .is_err());
+        for (url, domain) in [
+            (&auth_url, "https://bitkit.to"),
+            (&auth_url, ""),
+            (&auth_url, "127.0.0.1"),
+            (
+                &"https://evil.example/lnurl_auth/auth".to_string(),
+                "bitkit.to",
+            ),
+        ] {
+            assert!(VssClient::new_with_lnurl_auth(
+                MOCK_BASE_URL.to_string(),
+                TEST_STORE_ID.to_string(),
+                seed,
+                url.clone(),
+                key_domain(domain),
+            )
+            .await
+            .is_err());
+            assert!(LdkVssClient::new_with_lnurl_auth(
+                MOCK_BASE_URL.to_string(),
+                TEST_STORE_ID.to_string(),
+                seed,
+                url.clone(),
+                key_domain(domain),
+            )
+            .await
+            .is_err());
+        }
     }
 
     #[test]
