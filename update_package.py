@@ -32,11 +32,11 @@ def run(new_checksum: str = None, new_tag: str = None):
             print('Tag must not contain any whitespace.', file=sys.stderr)
             sys.exit(1)
 
-        # Support both v0.3.1 and 0.3.1 formats
-        tag_regex = re.compile("^v?\d+[.]\d+[.]\d+$")
+        # Support SemVer tags with an optional leading v, prerelease, and build metadata.
+        tag_regex = re.compile(r"^v?\d+[.]\d+[.]\d+(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$")
         tag_match = tag_regex.match(new_tag)
         if tag_match is None:
-            print('Tag must adhere to x.x.x or vx.x.x major/minor/patch format.', file=sys.stderr)
+            print('Tag must adhere to SemVer format, with an optional leading v.', file=sys.stderr)
             sys.exit(1)
 
     settings = [
@@ -68,7 +68,7 @@ def run(new_checksum: str = None, new_tag: str = None):
         print(f'Setting {current_variable_name}: {new_value}')
 
         # Create regex pattern to match the let declaration
-        regex = re.compile(f'(let[\s]+{current_variable_name}[\s]*=[\s]*)"([^"]*)"')
+        regex = re.compile(rf'(let\s+{current_variable_name}\s*=\s*)"([^"]*)"')
 
         # Find and replace the value
         match = regex.search(package_file)
