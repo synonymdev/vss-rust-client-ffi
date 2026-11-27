@@ -4,6 +4,7 @@ mod errors;
 mod ffi_tests;
 mod implementation;
 mod ldk_client;
+mod lnurl_auth;
 mod tests;
 mod types;
 
@@ -101,6 +102,8 @@ pub async fn vss_new_client(base_url: String, store_id: String) -> Result<(), Vs
 /// - `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
 /// - `passphrase`: Optional BIP39 passphrase
 /// - `lnurl_auth_server_url`: The LNURL-auth server URL for authentication
+/// - `key_domain`: Optional domain to derive the LNURL-auth linking key for, in place of
+///   the returned LNURL's domain; the signed callback then goes to the server URL's host
 ///
 /// # Returns
 /// Ok(()) if the client was created successfully, or a VssError if the client creation fails.
@@ -112,16 +115,18 @@ pub async fn vss_new_client(base_url: String, store_id: String) -> Result<(), Vs
 ///     "my-app-store".to_string(),
 ///     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
 ///     None,
-///     "https://auth.example.com/lnurl".to_string()
+///     "https://auth.example.com/lnurl".to_string(),
+///     None,
 /// ).await?;
 /// ```
-#[uniffi::export]
+#[uniffi::export(default(key_domain = None))]
 pub async fn vss_new_client_with_lnurl_auth(
     base_url: String,
     store_id: String,
     mnemonic: String,
     passphrase: Option<String>,
     lnurl_auth_server_url: String,
+    key_domain: Option<String>,
 ) -> Result<(), VssError> {
     execute_async!(async move {
         let mnemonic = Mnemonic::from_str(&mnemonic).map_err(|e| VssError::ConnectionError {
@@ -133,8 +138,14 @@ pub async fn vss_new_client_with_lnurl_auth(
             None => mnemonic.to_seed(""),
         };
 
-        let client =
-            VssClient::new_with_lnurl_auth(base_url, store_id, seed, lnurl_auth_server_url).await?;
+        let client = VssClient::new_with_lnurl_auth(
+            base_url,
+            store_id,
+            seed,
+            lnurl_auth_server_url,
+            key_domain,
+        )
+        .await?;
 
         let storage = get_vss_client();
         let mut guard = storage.lock().unwrap();
@@ -411,13 +422,14 @@ fn try_get_ldk_client() -> Result<LdkVssClient, VssError> {
 ///
 /// This client uses ONLY ldk-node's key derivation chain (full 64-byte seed),
 /// completely separate from the app backup client.
-#[uniffi::export]
+#[uniffi::export(default(key_domain = None))]
 pub async fn vss_new_ldk_client_with_lnurl_auth(
     base_url: String,
     store_id: String,
     mnemonic: String,
     passphrase: Option<String>,
     lnurl_auth_server_url: String,
+    key_domain: Option<String>,
 ) -> Result<(), VssError> {
     execute_async!(async move {
         let mnemonic = Mnemonic::from_str(&mnemonic).map_err(|e| VssError::ConnectionError {
@@ -429,9 +441,14 @@ pub async fn vss_new_ldk_client_with_lnurl_auth(
             None => mnemonic.to_seed(""),
         };
 
-        let client =
-            LdkVssClient::new_with_lnurl_auth(base_url, store_id, seed, lnurl_auth_server_url)
-                .await?;
+        let client = LdkVssClient::new_with_lnurl_auth(
+            base_url,
+            store_id,
+            seed,
+            lnurl_auth_server_url,
+            key_domain,
+        )
+        .await?;
 
         let storage = get_ldk_client();
         let mut guard = storage.lock().unwrap();

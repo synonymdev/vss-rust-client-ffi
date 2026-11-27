@@ -39,6 +39,7 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await;
 
@@ -133,6 +134,7 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -155,6 +157,7 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -268,10 +271,67 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await;
 
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_clients_take_a_key_domain() {
+        use crate::LdkVssClient;
+
+        let seed = [42u8; 64];
+        let auth_url = "https://api.bitkit.to/lnurl_auth/auth".to_string();
+        let key_domain = |d: &str| Some(d.to_string());
+
+        assert!(VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            auth_url.clone(),
+            key_domain("bitkit.to"),
+        )
+        .await
+        .is_ok());
+        assert!(LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            auth_url.clone(),
+            key_domain("bitkit.to"),
+        )
+        .await
+        .is_ok());
+        for (url, domain) in [
+            (&auth_url, "https://bitkit.to"),
+            (&auth_url, ""),
+            (&auth_url, "127.0.0.1"),
+            (
+                &"https://evil.example/lnurl_auth/auth".to_string(),
+                "bitkit.to",
+            ),
+        ] {
+            assert!(VssClient::new_with_lnurl_auth(
+                MOCK_BASE_URL.to_string(),
+                TEST_STORE_ID.to_string(),
+                seed,
+                url.clone(),
+                key_domain(domain),
+            )
+            .await
+            .is_err());
+            assert!(LdkVssClient::new_with_lnurl_auth(
+                MOCK_BASE_URL.to_string(),
+                TEST_STORE_ID.to_string(),
+                seed,
+                url.clone(),
+                key_domain(domain),
+            )
+            .await
+            .is_err());
+        }
     }
 
     #[test]
@@ -323,6 +383,7 @@ mod tests {
             INTEGRATION_STORE_ID.to_string(),
             [42u8; 64],
             "https://your-lnurl-auth-server.com".to_string(),
+            None,
         ).await.expect("Failed to create client");
 
         let key = format!("integration-test-{}", std::time::SystemTime::now()
