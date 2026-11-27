@@ -278,6 +278,43 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    #[tokio::test]
+    async fn test_clients_take_a_key_domain() {
+        use crate::LdkVssClient;
+
+        let seed = [42u8; 64];
+        let auth_url = "https://api.bitkit.to/lnurl_auth/auth".to_string();
+        let key_domain = |d: &str| Some(d.to_string());
+
+        assert!(VssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            auth_url.clone(),
+            key_domain("bitkit.to"),
+        )
+        .await
+        .is_ok());
+        assert!(LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            auth_url.clone(),
+            key_domain("bitkit.to"),
+        )
+        .await
+        .is_ok());
+        assert!(LdkVssClient::new_with_lnurl_auth(
+            MOCK_BASE_URL.to_string(),
+            TEST_STORE_ID.to_string(),
+            seed,
+            auth_url,
+            key_domain("https://bitkit.to"),
+        )
+        .await
+        .is_err());
+    }
+
     #[test]
     fn test_types_creation() {
         use crate::{KeyValue, KeyVersion, VssItem};
