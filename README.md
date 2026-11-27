@@ -231,7 +231,7 @@ have a seed-derived encryption key. Use `vssNewClientWithLnurlAuth` instead.
 - `baseUrl`: VSS server URL (e.g., "https://vss.example.com")
 - `storeId`: Unique identifier for your storage namespace  
 
-#### `vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String) -> Void`
+#### `vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String, keyDomain: String? = null) -> Void`
 Initialize the global VSS client connection with LNURL-auth authentication. Provides automatic JWT token management and data encryption.
 
 - `baseUrl`: VSS server URL (e.g., "https://vss.example.com")
@@ -239,6 +239,7 @@ Initialize the global VSS client connection with LNURL-auth authentication. Prov
 - `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
 - `passphrase`: Optional BIP39 passphrase (pass `null` if none)
 - `lnurlAuthServerUrl`: LNURL-auth server URL for authentication
+- `keyDomain`: Optional domain to derive the LNURL-auth linking key for, in place of the returned LNURL's domain; the signed callback then goes to the server URL's host
 
 #### `vssShutdownClient() -> Void`
 Shutdown the VSS client and clean up resources. Optional but recommended for clean application shutdown.
@@ -276,7 +277,7 @@ Delete an item. Returns `true` if item existed and was deleted.
 
 A fully separate client (`LdkVssClient`) with its own key derivation using the full 64-byte BIP39 seed, independent from the app backup client. Use this when LDK operations must be completely isolated from app backup operations.
 
-#### `vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String) -> Void`
+#### `vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String, keyDomain: String? = null) -> Void`
 Initialize the dedicated LDK client with LNURL-auth authentication. This client is fully separate from the app client initialized with `vssNewClientWithLnurlAuth`.
 
 #### `vssShutdownLdkClient() -> Void`
