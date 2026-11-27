@@ -239,7 +239,7 @@ Initialize the global VSS client connection with LNURL-auth authentication. Prov
 - `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
 - `passphrase`: Optional BIP39 passphrase (pass `null` if none)
 - `lnurlAuthServerUrl`: LNURL-auth server URL for authentication
-- `keyDomain`: Optional domain to derive the LNURL-auth linking key for, in place of the returned LNURL's domain; the signed callback then goes to the server URL's host
+- `keyDomain`: Optional domain to derive the LNURL-auth linking key for, in place of the returned LNURL's domain; the signed callback then goes to the server URL's host, which must be the key domain or one of its subdomains
 
 #### `vssShutdownClient() -> Void`
 Shutdown the VSS client and clean up resources. Optional but recommended for clean application shutdown.
