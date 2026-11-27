@@ -2013,7 +2013,7 @@ dependencies = [
 
 [[package]]
 name = "vss-rust-client-ffi"
-version = "0.5.26-rc2"
+version = "0.5.26-rc3"
 dependencies = [
  "async-trait",
  "base64",

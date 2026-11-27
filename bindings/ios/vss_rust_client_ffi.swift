@@ -1781,6 +1781,8 @@ public func vssNewClient(baseUrl: String, storeId: String)async throws   {
  * - `mnemonic`: BIP39 mnemonic phrase (12 or 24 words)
  * - `passphrase`: Optional BIP39 passphrase
  * - `lnurl_auth_server_url`: The LNURL-auth server URL for authentication
+ * - `key_domain`: Optional domain to derive the LNURL-auth linking key for, in place of
+ * the returned LNURL's domain; the signed callback then goes to the server URL's host
  *
  * # Returns
  * Ok(()) if the client was created successfully, or a VssError if the client creation fails.
@@ -1792,15 +1794,16 @@ public func vssNewClient(baseUrl: String, storeId: String)async throws   {
  * "my-app-store".to_string(),
  * "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
  * None,
- * "https://auth.example.com/lnurl".to_string()
+ * "https://auth.example.com/lnurl".to_string(),
+ * None,
  * ).await?;
  * ```
  */
-public func vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String)async throws   {
+public func vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String, keyDomain: String? = nil)async throws   {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth(FfiConverterString.lower(baseUrl),FfiConverterString.lower(storeId),FfiConverterString.lower(mnemonic),FfiConverterOptionString.lower(passphrase),FfiConverterString.lower(lnurlAuthServerUrl)
+                uniffi_vss_rust_client_ffi_fn_func_vss_new_client_with_lnurl_auth(FfiConverterString.lower(baseUrl),FfiConverterString.lower(storeId),FfiConverterString.lower(mnemonic),FfiConverterOptionString.lower(passphrase),FfiConverterString.lower(lnurlAuthServerUrl),FfiConverterOptionString.lower(keyDomain)
                 )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_void,
@@ -1816,11 +1819,11 @@ public func vssNewClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic
  * This client uses ONLY ldk-node's key derivation chain (full 64-byte seed),
  * completely separate from the app backup client.
  */
-public func vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String)async throws   {
+public func vssNewLdkClientWithLnurlAuth(baseUrl: String, storeId: String, mnemonic: String, passphrase: String?, lnurlAuthServerUrl: String, keyDomain: String? = nil)async throws   {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_vss_rust_client_ffi_fn_func_vss_new_ldk_client_with_lnurl_auth(FfiConverterString.lower(baseUrl),FfiConverterString.lower(storeId),FfiConverterString.lower(mnemonic),FfiConverterOptionString.lower(passphrase),FfiConverterString.lower(lnurlAuthServerUrl)
+                uniffi_vss_rust_client_ffi_fn_func_vss_new_ldk_client_with_lnurl_auth(FfiConverterString.lower(baseUrl),FfiConverterString.lower(storeId),FfiConverterString.lower(mnemonic),FfiConverterOptionString.lower(passphrase),FfiConverterString.lower(lnurlAuthServerUrl),FfiConverterOptionString.lower(keyDomain)
                 )
             },
             pollFunc: ffi_vss_rust_client_ffi_rust_future_poll_void,
@@ -2005,10 +2008,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_client() != 27788) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth() != 13999) {
+    if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_client_with_lnurl_auth() != 38642) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_ldk_client_with_lnurl_auth() != 59369) {
+    if (uniffi_vss_rust_client_ffi_checksum_func_vss_new_ldk_client_with_lnurl_auth() != 11050) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_vss_rust_client_ffi_checksum_func_vss_put_conditional() != 20681) {
