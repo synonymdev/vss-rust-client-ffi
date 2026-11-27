@@ -1,5 +1,6 @@
 use super::errors::VssError;
 use super::types::*;
+use crate::lnurl_auth::lnurl_auth_header_provider;
 use bip39::Mnemonic;
 use bitcoin::bip32::{ChildNumber, Xpriv};
 use bitcoin::hashes::{sha256, Hash, HashEngine, Hmac, HmacEngine};
@@ -7,12 +8,11 @@ use bitcoin::secp256k1::Secp256k1;
 use bitcoin::Network;
 use prost::Message;
 use rand::RngCore;
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use vss_client_ng::client::VssClient as ExternalVssClient;
 use vss_client_ng::error::VssError as ExternalVssError;
-use vss_client_ng::headers::{LnurlAuthToJwtProvider, VssHeaderProvider};
+use vss_client_ng::headers::VssHeaderProvider;
 use vss_client_ng::types::{
     DeleteObjectRequest, GetObjectRequest, KeyValue as ExternalKeyValue, ListKeyVersionsRequest,
     PutObjectRequest, Storable,
@@ -138,6 +138,8 @@ impl VssClient {
     /// - `store_id`: The storage namespace identifier
     /// - `seed`: The full BIP39 seed bytes for key derivation (64 bytes)
     /// - `lnurl_auth_server_url`: The LNURL-auth server URL
+    /// - `key_domain`: Domain to derive the LNURL-auth linking key for, in place of the
+    ///   returned LNURL's domain; the signed callback then goes to the server URL's host
     ///
     /// # Returns
     /// A new VssClient instance or VssError on failure
@@ -146,6 +148,7 @@ impl VssClient {
         store_id: String,
         seed: [u8; 64],
         lnurl_auth_server_url: String,
+        key_domain: Option<String>,
     ) -> Result<Self, VssError> {
         let secp = Secp256k1::new();
 
@@ -181,13 +184,8 @@ impl VssClient {
                 error_details: format!("Failed to derive LNURL-auth key: {}", e),
             })?;
 
-        let lnurl_auth_jwt_provider =
-            LnurlAuthToJwtProvider::new(lnurl_auth_xprv, lnurl_auth_server_url, HashMap::new())
-                .map_err(|e| VssError::ConnectionError {
-                    error_details: format!("Failed to create LNURL-auth provider: {}", e),
-                })?;
-
-        let header_provider = Arc::new(lnurl_auth_jwt_provider);
+        let header_provider =
+            lnurl_auth_header_provider(lnurl_auth_xprv, lnurl_auth_server_url, key_domain)?;
 
         Self::new_with_header_provider(
             base_url,

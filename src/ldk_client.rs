@@ -2,17 +2,16 @@ use super::errors::VssError;
 use super::types::*;
 use crate::implementation::{
     convert_error, derive_data_encryption_and_obfuscation_keys, RandEntropySource,
-    VSS_HARDENED_CHILD_INDEX, VSS_LNURL_AUTH_HARDENED_CHILD_INDEX,
+    VSS_HARDENED_CHILD_INDEX,
 };
+use crate::lnurl_auth::{ldk_lnurl_auth_xprv, lnurl_auth_header_provider};
 use bitcoin::bip32::{ChildNumber, Xpriv};
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::Network;
 use prost::Message;
-use std::collections::HashMap;
 use std::sync::Arc;
 use vss_client_ng::client::VssClient as ExternalVssClient;
 use vss_client_ng::error::VssError as ExternalVssError;
-use vss_client_ng::headers::LnurlAuthToJwtProvider;
 use vss_client_ng::types::{
     DeleteObjectRequest, GetObjectRequest, KeyValue as ExternalKeyValue, ListKeyVersionsRequest,
     PutObjectRequest, Storable,
@@ -46,8 +45,8 @@ type LdkRetryPolicy = FilteredRetryPolicy<
 /// 4. HKDF(vss_seed) -> (data_encryption_key, obfuscation_master_key)
 /// 5. KeyObfuscator::new(obfuscation_master_key)
 ///
-/// LNURL-auth: derived from truncated 32-byte seed path (m/877'/138')
-/// to maintain the same server identity as the app client.
+/// LNURL-auth: derived from the full 64-byte seed path (m/877'/138'),
+/// the same server identity as ldk-node.
 #[derive(Clone)]
 pub struct LdkVssClient {
     inner: Arc<ExternalVssClient<LdkRetryPolicy>>,
@@ -64,44 +63,16 @@ impl LdkVssClient {
         store_id: String,
         seed: [u8; 64],
         lnurl_auth_server_url: String,
+        key_domain: Option<String>,
     ) -> Result<Self, VssError> {
         let secp = Secp256k1::new();
 
         // LNURL-auth: from full 64-byte seed (same server identity as ldk-node)
-        let auth_master_xprv =
-            Xpriv::new_master(Network::Bitcoin, &seed).map_err(|e| {
-                VssError::ConnectionError {
-                    error_details: format!("Failed to create auth master key: {}", e),
-                }
-            })?;
-        let auth_vss_xprv = auth_master_xprv
-            .derive_priv(
-                &secp,
-                &[ChildNumber::Hardened {
-                    index: VSS_HARDENED_CHILD_INDEX,
-                }],
-            )
-            .map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to derive auth VSS key: {}", e),
-            })?;
-        let lnurl_auth_xprv = auth_vss_xprv
-            .derive_priv(
-                &secp,
-                &[ChildNumber::Hardened {
-                    index: VSS_LNURL_AUTH_HARDENED_CHILD_INDEX,
-                }],
-            )
-            .map_err(|e| VssError::ConnectionError {
-                error_details: format!("Failed to derive LNURL-auth key: {}", e),
-            })?;
-
-        let lnurl_auth_jwt_provider =
-            LnurlAuthToJwtProvider::new(lnurl_auth_xprv, lnurl_auth_server_url, HashMap::new())
-                .map_err(|e| VssError::ConnectionError {
-                    error_details: format!("Failed to create LNURL-auth provider: {}", e),
-                })?;
-
-        let header_provider = Arc::new(lnurl_auth_jwt_provider);
+        let header_provider = lnurl_auth_header_provider(
+            ldk_lnurl_auth_xprv(&seed)?,
+            lnurl_auth_server_url,
+            key_domain,
+        )?;
 
         // LDK keys: from full 64-byte seed (matching ldk-node exactly)
         let ldk_master_xprv =
@@ -124,19 +95,18 @@ impl LdkVssClient {
             derive_data_encryption_and_obfuscation_keys(&vss_seed);
         let key_obfuscator = Arc::new(KeyObfuscator::new(obfuscation_master_key));
 
-        let retry_policy =
-            ExponentialBackoffRetryPolicy::new(std::time::Duration::from_millis(10))
-                .with_max_attempts(10)
-                .with_max_total_delay(std::time::Duration::from_secs(15))
-                .with_max_jitter(std::time::Duration::from_millis(10))
-                .skip_retry_on_error(Box::new(|e: &ExternalVssError| {
-                    matches!(
-                        e,
-                        ExternalVssError::NoSuchKeyError(..)
-                            | ExternalVssError::InvalidRequestError(..)
-                            | ExternalVssError::ConflictError(..)
-                    )
-                }) as _);
+        let retry_policy = ExponentialBackoffRetryPolicy::new(std::time::Duration::from_millis(10))
+            .with_max_attempts(10)
+            .with_max_total_delay(std::time::Duration::from_secs(15))
+            .with_max_jitter(std::time::Duration::from_millis(10))
+            .skip_retry_on_error(Box::new(|e: &ExternalVssError| {
+                matches!(
+                    e,
+                    ExternalVssError::NoSuchKeyError(..)
+                        | ExternalVssError::InvalidRequestError(..)
+                        | ExternalVssError::ConflictError(..)
+                )
+            }) as _);
 
         let client = ExternalVssClient::new_with_headers(base_url, retry_policy, header_provider);
 
@@ -225,11 +195,7 @@ impl LdkVssClient {
     }
 
     /// Deletes a key-value pair using ldk-node's namespaced key format.
-    pub async fn delete(
-        &self,
-        key: String,
-        namespace: &LdkNamespace,
-    ) -> Result<bool, VssError> {
+    pub async fn delete(&self, key: String, namespace: &LdkNamespace) -> Result<bool, VssError> {
         let storage_key = self.build_key(&key, namespace);
         let request = DeleteObjectRequest {
             store_id: self.store_id.clone(),
@@ -247,10 +213,7 @@ impl LdkVssClient {
     }
 
     /// Lists keys in a specific namespace with client-side deobfuscation.
-    pub async fn list_keys(
-        &self,
-        namespace: &LdkNamespace,
-    ) -> Result<Vec<KeyVersion>, VssError> {
+    pub async fn list_keys(&self, namespace: &LdkNamespace) -> Result<Vec<KeyVersion>, VssError> {
         let prefix = Some(self.build_prefix(namespace));
         self.list_key_versions_deobfuscated(prefix).await
     }

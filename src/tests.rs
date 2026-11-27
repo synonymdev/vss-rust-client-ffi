@@ -39,6 +39,7 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await;
 
@@ -133,6 +134,7 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -155,6 +157,7 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -268,6 +271,7 @@ mod tests {
             TEST_STORE_ID.to_string(),
             seed,
             "https://auth.example.com/lnurl".to_string(),
+            None,
         )
         .await;
 
@@ -323,6 +327,7 @@ mod tests {
             INTEGRATION_STORE_ID.to_string(),
             [42u8; 64],
             "https://your-lnurl-auth-server.com".to_string(),
+            None,
         ).await.expect("Failed to create client");
 
         let key = format!("integration-test-{}", std::time::SystemTime::now()

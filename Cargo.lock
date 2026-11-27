@@ -2015,6 +2015,8 @@ dependencies = [
 name = "vss-rust-client-ffi"
 version = "0.5.26-rc2"
 dependencies = [
+ "async-trait",
+ "base64",
  "bip39",
  "bitcoin",
  "once_cell",
@@ -2023,9 +2025,11 @@ dependencies = [
  "rand 0.8.5",
  "reqwest",
  "serde",
+ "serde_json",
  "thiserror",
  "tokio",
  "uniffi",
+ "url",
  "vss-client-ng",
 ]
 
